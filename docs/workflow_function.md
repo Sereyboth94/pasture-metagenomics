@@ -6,7 +6,7 @@
 
 
 
-This workflow performs functional profiling of wheat root and rhizosphere metagenomes using HUMAnN pathway abundance tables.
+This workflow performs functional profiling of pasture root and rhizosphere metagenomes using HUMAnN pathway abundance tables.
 
 
 
