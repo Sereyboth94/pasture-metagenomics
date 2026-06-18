@@ -6,7 +6,7 @@
 
 
 
-This workflow performs taxonomic profiling analyses of wheat root and rhizosphere metagenomes using Bracken abundance tables derived from Kraken2 classifications.
+This workflow performs taxonomic profiling analyses of pasture root and rhizosphere metagenomes using Bracken abundance tables derived from Kraken2 classifications.
 
 
 
