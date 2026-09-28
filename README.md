@@ -2,7 +2,7 @@
 
 ## Overview
 
-This repository contains the bioinformatics workflows, processed metagenomic data, metadata, statistical analyses, and figure-generation scripts used to investigate microbial taxonomic composition and functional potential in pasture rhizosphere and root compartments across multiple field locations in New Zealand.
+This repository contains the bioinformatics workflows, processed metagenomic data, metadata, plant biomass measurements, statistical analyses, and figure-generation scripts used to investigate *Trichoderma* inoculation in pasture rhizosphere and root-associated microbiomes at five New Zealand locations. The Kowhai irrigated and rainfed fields are analysed separately, giving six field environments.
 
 The repository accompanies a research manuscript and has been structured to support full computational reproducibility, GitHub publication, and Zenodo archiving.
 
@@ -13,6 +13,7 @@ The repository accompanies a research manuscript and has been structured to supp
 ```text
 Github/
 ├── bioinformatics/
+├── Biomass/
 ├── location/
 ├── taxonomy/
 ├── function/
@@ -50,7 +51,12 @@ install.packages(c(
   "ggspatial",
   "ggsci",
   "digest",
-  "here"
+  "here",
+  "readxl",
+  "lme4",
+  "lmerTest",
+  "emmeans",
+  "car"
 ))
 ```
 
@@ -64,26 +70,7 @@ Open R or RStudio and set the repository root:
 setwd("path/to/Github")
 ```
 
-## 1. Generate Figure 1
-
-```r
-source("location/run_location_figure1_pipeline.R")
-```
-
-Generates:
-
-- Figure 1A (Study-site map)
-- Merged Figure 1 manuscript panel
-
-Outputs:
-
-```text
-manuscript_figures/Main_Figures/
-```
-
----
-
-## 2. Generate Taxonomy Figures
+## 1. Generate Taxonomy Figures
 
 ```r
 source("taxonomy/scripts/run_taxonomy_pipeline.R")
@@ -105,7 +92,7 @@ manuscript_figures/Supplementary_Taxonomy_Figures/
 
 ---
 
-## 3. Generate Functional Potential Figures
+## 2. Generate Functional Potential Figures
 
 ```r
 source("function/scripts/run_function_pipeline.R")
@@ -129,16 +116,38 @@ manuscript_figures/Supplementary_Function_Figures/
 
 ---
 
+## 3. Analyse Biomass and Assemble Figure 1
+
+```r
+source("Biomass/run_location_figure1_pipeline.R")
+```
+
+Generates:
+
+- Figure 1A (Plant biomass)
+- Merged Figure 1A–C manuscript figure
+- Biomass analysis tables and diagnostic outputs
+
+`Biomass/Plant_Biomass.xlsx` contains plot-level aboveground biomass measurements. Eight blocks were assessed in each field environment, with a control and an inoculated plot per block. The analysis reports treatment means and standard deviations, paired comparisons, and percentage change relative to the control mean. To run only the biomass analysis, use `source("Biomass/Plant_Biomass_ANOVA.R")`.
+
+Outputs:
+
+```text
+Biomass/Plant_Biomass_ANOVA_results/
+location/results/
+manuscript_figures/Main_Figures/
+```
+
+---
+
 # Recommended Workflow Order
 
 For complete manuscript reproduction:
 
 ```r
-source("location/run_location_figure1_pipeline.R")
-
 source("taxonomy/scripts/run_taxonomy_pipeline.R")
-
 source("function/scripts/run_function_pipeline.R")
+source("Biomass/run_location_figure1_pipeline.R")
 ```
 
 Final publication-ready figures will be available in:
@@ -153,9 +162,10 @@ manuscript_figures/Main_Figures/
 
 | Figure | Workflow |
 |----------|----------|
-| Figure 1A | location |
+| Figure 1A | Biomass |
 | Figure 1B | taxonomy |
 | Figure 1C | function |
+| Figure 1A–C assembly | Biomass |
 | Figure 2 | taxonomy |
 | Figure 3 | function |
 | Figure 4 | function |
@@ -178,7 +188,7 @@ manuscript_figures/Main_Figures/
 
 BioProject: PRJNA1475531
 
-SRA accession(s): PRJNA1475531
+SRA runs: see BioProject PRJNA1475531
 
 ---
 
