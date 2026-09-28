@@ -1,0 +1,78 @@
+$Eyrewell_Forest
+
+Error: Replicate
+          Df Sum Sq Mean Sq F value Pr(>F)
+Residuals  7 382709   54673               
+
+Error: Within
+          Df Sum Sq Mean Sq F value Pr(>F)  
+Treatment  1 521063  521063   7.617 0.0281 *
+Residuals  7 478873   68410                 
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+$Kowhai_Irrigated
+
+Error: Replicate
+          Df   Sum Sq Mean Sq F value Pr(>F)
+Residuals  7 12818722 1831246               
+
+Error: Within
+          Df Sum Sq Mean Sq F value  Pr(>F)    
+Treatment  1 327184  327184      42 0.00034 ***
+Residuals  7  54530    7790                    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+$Kowhai_Rainfed
+
+Error: Replicate
+          Df   Sum Sq Mean Sq F value Pr(>F)
+Residuals  7 12573506 1796215               
+
+Error: Within
+          Df Sum Sq Mean Sq F value   Pr(>F)    
+Treatment  1 278256  278256   57.59 0.000127 ***
+Residuals  7  33820    4831                     
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+$LU_H8
+
+Error: Replicate
+          Df Sum Sq Mean Sq F value Pr(>F)
+Residuals  7 176374   25196               
+
+Error: Within
+          Df Sum Sq Mean Sq F value Pr(>F)  
+Treatment  1 189716  189716    6.29 0.0405 *
+Residuals  7 211133   30162                 
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+$Rolleston
+
+Error: Replicate
+          Df Sum Sq Mean Sq F value Pr(>F)
+Residuals  7 873675  124811               
+
+Error: Within
+          Df Sum Sq Mean Sq F value Pr(>F)  
+Treatment  1 217838  217838    8.77 0.0211 *
+Residuals  7 173881   24840                 
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+$West_Coast
+
+Error: Replicate
+          Df Sum Sq Mean Sq F value Pr(>F)
+Residuals  7 957493  136785               
+
+Error: Within
+          Df Sum Sq Mean Sq F value Pr(>F)  
+Treatment  1 379442  379442    8.09 0.0249 *
+Residuals  7 328315   46902                 
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+

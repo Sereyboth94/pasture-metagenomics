@@ -1,0 +1,15 @@
+
+Error: Block
+          Df   Sum Sq Mean Sq F value  Pr(>F)   
+Location   5 12904346 2580869   3.902 0.00539 **
+Residuals 42 27782479  661488                   
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Error: Block:Treatment
+                   Df  Sum Sq Mean Sq F value   Pr(>F)    
+Treatment           1 1858856 1858856  60.967 1.04e-09 ***
+Location:Treatment  5   54644   10929   0.358    0.874    
+Residuals          42 1280551   30489                     
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1

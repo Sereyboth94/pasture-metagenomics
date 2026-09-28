@@ -1,0 +1,14 @@
+$residual_Shapiro_Wilk
+
+	Shapiro-Wilk normality test
+
+data:  diagnostic_data$residual
+W = 0.98264, p-value = 0.2355
+
+
+$residual_Levene_test_across_cells
+Levene's Test for Homogeneity of Variance (center = median)
+      Df F value Pr(>F)
+group 11  1.5039 0.1454
+      84               
+

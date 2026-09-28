@@ -3,30 +3,102 @@
 # Standalone taxonomy metagenomics pipeline
 # Generated for GitHub/Zenodo reproducibility.
 #
-# Run from repository root, for example:
-#   Rscript taxonomy/scripts/run_taxonomy_pipeline.R
+# Run either from the Github repository root:
+#   source("taxonomy/scripts/run_taxonomy_pipeline.R")
+# or from the taxonomy folder:
+#   source("scripts/run_taxonomy_pipeline.R")
 #
-# Edit PROJECT_DIR/NATCOM_DIR below only if you do not run from
-# the repository root. You can also set environment variables:
-#   PROJECT_DIR=/path/to/repo NATCOM_DIR=/path/to/output Rscript ...
+# The script automatically detects the repository root. PROJECT_DIR can
+# optionally point to either the Github root or the taxonomy folder.
 # ============================================================
 
 options(stringsAsFactors = FALSE)
 set.seed(1)
 
-get_repo_root <- function() {
+get_script_path <- function() {
   args <- commandArgs(trailingOnly = FALSE)
   file_arg <- grep("^--file=", args, value = TRUE)
   if (length(file_arg) > 0) {
-    script_path <- normalizePath(sub("^--file=", "", file_arg[1]), winslash = "/", mustWork = FALSE)
-    return(normalizePath(file.path(dirname(script_path), "..", ".."), winslash = "/", mustWork = FALSE))
+    return(normalizePath(
+      sub("^--file=", "", file_arg[1]),
+      winslash = "/",
+      mustWork = FALSE
+    ))
   }
-  normalizePath(getwd(), winslash = "/", mustWork = FALSE)
+
+  frame_files <- vapply(
+    sys.frames(),
+    function(frame) {
+      if (!is.null(frame$ofile)) as.character(frame$ofile)[1] else ""
+    },
+    character(1)
+  )
+  frame_files <- frame_files[nzchar(frame_files)]
+
+  if (length(frame_files) > 0) {
+    return(normalizePath(
+      tail(frame_files, 1),
+      winslash = "/",
+      mustWork = FALSE
+    ))
+  }
+
+  ""
 }
 
-PROJECT_DIR <- Sys.getenv(
-  "PROJECT_DIR",
-  unset = get_repo_root()
+resolve_repo_root <- function(component, override = "") {
+  candidates <- character()
+
+  if (nzchar(override)) candidates <- c(candidates, override)
+
+  script_path <- get_script_path()
+  if (nzchar(script_path)) {
+    component_dir <- normalizePath(
+      file.path(dirname(script_path), ".."),
+      winslash = "/",
+      mustWork = FALSE
+    )
+    candidates <- c(candidates, dirname(component_dir))
+  }
+
+  current_dir <- normalizePath(getwd(), winslash = "/", mustWork = FALSE)
+  candidates <- unique(c(candidates, current_dir, dirname(current_dir)))
+  candidates <- vapply(
+    candidates,
+    normalizePath,
+    character(1),
+    winslash = "/",
+    mustWork = FALSE
+  )
+
+  for (candidate in candidates) {
+    if (
+      dir.exists(file.path(candidate, component, "data")) &&
+      dir.exists(file.path(candidate, component, "scripts"))
+    ) {
+      return(candidate)
+    }
+
+    if (
+      tolower(basename(candidate)) == tolower(component) &&
+      dir.exists(file.path(candidate, "data")) &&
+      dir.exists(file.path(candidate, "scripts"))
+    ) {
+      return(dirname(candidate))
+    }
+  }
+
+  stop(
+    "Could not locate the Github repository containing ", component,
+    "/data and ", component, "/scripts. Run from the Github root or the ",
+    component, " folder, or set PROJECT_DIR to either location.",
+    call. = FALSE
+  )
+}
+
+PROJECT_DIR <- resolve_repo_root(
+  component = "taxonomy",
+  override = Sys.getenv("PROJECT_DIR", unset = "")
 )
 
 # manuscript_figures root
@@ -52,7 +124,67 @@ dir.create(NATCOM_DIR, recursive = TRUE, showWarnings = FALSE)
 dir.create(MAIN_FIG_DIR, recursive = TRUE, showWarnings = FALSE)
 dir.create(SUPP_TAX_DIR, recursive = TRUE, showWarnings = FALSE)
 
+# Text sizes for panels that are assembled into multi-panel manuscript figures.
+# These values improve readability after reduction without changing the data,
+# scales, panel arrangement, or final export dimensions.
+MERGED_BASE_SIZE         <- 9
+MERGED_TITLE_SIZE        <- 11
+MERGED_LEGEND_TITLE_SIZE <- 10
+MERGED_LEGEND_TEXT_SIZE  <- 8
+MERGED_TAG_SIZE          <- 14
+
+# Figure 1B is exported without a legend because Figure 1 uses one shared
+# legend to the right of Panels B and C. Keep these dimensions and text sizes
+# identical to the Figure 1C settings in run_function_pipeline.R.
+FIG1_PCOA_BASE_SIZE         <- 11
+FIG1_PCOA_AXIS_TITLE_SIZE   <- 13
+FIG1_PCOA_AXIS_TEXT_SIZE    <- 11
+FIG1_PCOA_EXPORT_WIDTH_MM   <- 85
+FIG1_PCOA_EXPORT_HEIGHT_MM  <- 70
+FIG1_PANEL_VERSION          <- "Figure 1B panel v21: location and environment interaction models"
+message(FIG1_PANEL_VERSION)
+
+# Figure 2-specific typography and compact PCoA geometry. The taller-than-wide
+# PCoA panels match the compact style used for the standalone Figure 1B panel.
+# Keeping these settings separate avoids changing supplementary figures.
+FIG2_PCOA_BASE_SIZE         <- 15
+FIG2_PCOA_TITLE_SIZE        <- 19
+FIG2_PCOA_AXIS_TITLE_SIZE   <- 17
+FIG2_PCOA_AXIS_TEXT_SIZE    <- 15
+FIG2_PCOA_LEGEND_TITLE_SIZE <- 16
+FIG2_PCOA_LEGEND_TEXT_SIZE  <- 14
+FIG2_PCOA_ASPECT_RATIO      <- 1.18
+FIG2_ROOT_X_BREAK_WIDTH      <- 0.10
+
+FIG2_STACK_BASE_SIZE         <- 11
+FIG2_STACK_TITLE_SIZE        <- 15
+FIG2_STACK_LEGEND_TITLE_SIZE <- 13
+FIG2_STACK_LEGEND_TEXT_SIZE  <- 11.5
+FIG2_STACK_X_TEXT_ANGLE      <- 30
+FIG2_TAG_SIZE                <- 20
+FIG2_EXPORT_HEIGHT_MM        <- 205
+
+# Supplementary taxonomy figures use a reduced family set so a single-column
+# legend and larger manuscript-readable typography fit cleanly.
+SUPP_TAX_FAMILY_TOP_N        <- 15
+SUPP_TAX_BASE_SIZE           <- 14
+SUPP_TAX_TAG_SIZE            <- 22
+SUPP_TAX_EXPORT_WIDTH_MM     <- 320
+SUPP_TAX_EXPORT_HEIGHT_MM    <- 260
+
+# Wrapped facet headings used only in the merged composition panels. Keeping
+# the long site names on two lines prevents clipping in the six narrow facets.
+MERGED_SITE_LABELS <- c(
+  "Eyrewell_Forest"    = "Eyrewell\nForest",
+  "Kowhai (Irrigated)" = "Kowhai\n(Irrigated)",
+  "Kowhai (Rainfed)"   = "Kowhai\n(Rainfed)",
+  "LU_H8"              = "LU_H8",
+  "Rolleston"          = "Rolleston",
+  "West_Coast"         = "West\nCoast"
+)
+
 message("PROJECT_DIR: ", PROJECT_DIR)
+message("TAXONOMY_DIR: ", file.path(PROJECT_DIR, "taxonomy"))
 message("NATCOM_DIR:  ", NATCOM_DIR)
 message("SUPP_TAX_DIR: ", SUPP_TAX_DIR)
 
@@ -139,7 +271,11 @@ read_meta <- function(meta_path, compartment_label) {
     mutate(
       SampleID = norm_sampleid(SampleID),
       Location = trimws(as.character(Location)),
-      Inoculation = trimws(as.character(Inoculation)),
+      Water = if ("Water" %in% names(meta)) trimws(as.character(Water)) else NA_character_,
+      Inoculation = ifelse(
+        tolower(trimws(as.character(Inoculation))) %in% c("panch", "trichoderma"),
+        "Trichoderma", trimws(as.character(Inoculation))
+      ),
       Compartment = compartment_label
     ) %>%
     mutate(
@@ -149,7 +285,7 @@ read_meta <- function(meta_path, compartment_label) {
         TRUE ~ Location
       ),
       Location = factor(Location, levels = c("Eyrewell_Forest", "Kowhai", "LU_H8", "Rolleston", "West_Coast")),
-      Inoculation = factor(Inoculation, levels = c("Control", "Panch")),
+      Inoculation = factor(Inoculation, levels = c("Control", "Trichoderma")),
       Compartment = factor(Compartment, levels = c("Rhizosphere", "Root"))
     )
 }
@@ -177,16 +313,17 @@ theme_natcom_pcoa <- function(base_size = 7, base_family = "") {
   theme_classic(base_size = base_size, base_family = base_family) +
     theme(
       plot.title = element_blank(),
-      axis.title = element_text(face = "bold", size = base_size + 1),
-      axis.text = element_text(color = "black", size = base_size),
+      axis.title = element_text(face = "bold", size = FIG1_PCOA_AXIS_TITLE_SIZE),
+      axis.text = element_text(color = "black", size = FIG1_PCOA_AXIS_TEXT_SIZE),
       axis.line = element_line(linewidth = 0.3),
       axis.ticks = element_line(linewidth = 0.3),
       legend.title = element_text(face = "bold", size = base_size),
-      legend.text = element_text(size = base_size - 0.2),
+      legend.text = element_text(size = base_size),
       legend.key.size = unit(0.32, "cm"),
       legend.spacing.y = unit(0.02, "cm"),
       panel.border = element_rect(fill = NA, color = "black", linewidth = 0.3),
-      plot.margin = margin(3, 3, 3, 3)
+      legend.position = "none",
+      plot.margin = margin(4, 4, 4, 4)
     )
 }
 
@@ -196,6 +333,14 @@ loc_cols <- c(
   "LU_H8"           = "#009E73",
   "Rolleston"       = "#0072B2",
   "West_Coast"      = "#CC79A7"
+)
+fig1_environment_cols <- c(
+  "Eyrewell_Forest"    = "#D55E00",
+  "Kowhai (Irrigated)" = "#8C510A",
+  "Kowhai (Rainfed)"   = "#E69F00",
+  "LU_H8"              = "#009E73",
+  "Rolleston"          = "#0072B2",
+  "West_Coast"         = "#CC79A7"
 )
 
 # ----------------------------
@@ -215,10 +360,48 @@ props_combined <- cbind(props_rhizo2, props_root2)
 meta_combined <- bind_rows(meta_rhizo, meta_root) %>%
   distinct(SampleID, .keep_all = TRUE) %>%
   filter(SampleID %in% colnames(props_combined)) %>%
+  mutate(
+    # Six field environments in the data; Kowhai contributes two water regimes.
+    # The PERMANOVA below deliberately uses the five-level Location factor.
+    Environment = case_when(
+      as.character(Location) == "Kowhai" &
+        stringr::str_detect(Water, stringr::regex("^irr", ignore_case = TRUE)) ~
+        "Kowhai (Irrigated)",
+      as.character(Location) == "Kowhai" &
+        stringr::str_detect(Water, stringr::regex("^rain", ignore_case = TRUE)) ~
+        "Kowhai (Rainfed)",
+      as.character(Location) == "Kowhai" ~ NA_character_,
+      TRUE ~ as.character(Location)
+    )
+  ) %>%
   arrange(Location, Compartment, Inoculation, SampleID)
 
+if (anyNA(meta_combined$Environment)) {
+  stop("Kowhai Water must identify Irrigated or Rainfed for every sample.")
+}
 props_combined <- props_combined[, meta_combined$SampleID, drop = FALSE]
 stopifnot(identical(colnames(props_combined), meta_combined$SampleID))
+
+model_scope <- tibble::tibble(
+  Model = "Figure 1B taxonomic global PERMANOVA",
+  Location_levels_in_model = n_distinct(meta_combined$Location, na.rm = TRUE),
+  Field_environments_in_dataset = n_distinct(meta_combined$Environment),
+  Definition = paste(
+    "Location pools Kowhai irrigated and rainfed samples into one of five sites;",
+    "the ordination colours show six environments, while the PERMANOVA model uses five locations."
+  )
+)
+write_tsv(model_scope, file.path(out_dir, "Figure1B_model_scope.tsv"))
+if (model_scope$Location_levels_in_model != 5 ||
+    model_scope$Field_environments_in_dataset != 6) {
+  warning("Expected five locations and six field environments; check Water labels.")
+}
+if (!setequal(unique(meta_combined$Environment), names(fig1_environment_cols))) {
+  stop("Figure 1B needs all six field environments with valid colour labels.")
+}
+meta_combined$Environment <- factor(
+  meta_combined$Environment, levels = names(fig1_environment_cols)
+)
 
 # Hellinger transformation
 props_hell <- sqrt(props_combined)
@@ -237,14 +420,108 @@ var_expl <- pos_eig / sum(pos_eig)
 xlab <- paste0("PCoA1 (", round(var_expl[1] * 100, 1), "%)")
 ylab <- paste0("PCoA2 (", round(var_expl[2] * 100, 1), "%)")
 
-# PERMANOVA for annotation
+# Five-location PERMANOVA (Kowhai rainfed and irrigated pooled as Location).
 set.seed(1)
 perm <- adonis2(bc ~ Location + Compartment + Inoculation,
                 data = meta_combined,
                 permutations = 999,
                 by = "margin")
 perm_tbl <- as.data.frame(perm) %>% tibble::rownames_to_column("Term")
-write_tsv(perm_tbl, file.path(out_dir, "PERMANOVA_taxonomy_global.tsv"))
+write_tsv(perm_tbl, file.path(out_dir, "PERMANOVA_taxonomy_global_additive.tsv"))
+
+# Five-geographic-location x inoculation test, adjusted for compartment.
+# This pools Kowhai water regimes, unlike the six-environment analyses below.
+# Restrict label permutations within geographic location. The shared plot
+# pairing of root and rhizosphere samples cannot be modelled because a plot ID
+# is absent from these input metadata; interpret this combined test cautiously.
+if (!identical(attr(bc, "Labels"), as.character(meta_combined$SampleID))) {
+  stop("Combined taxonomy metadata do not match Bray-Curtis sample order.")
+}
+location_permutations <- permute::how(nperm = 999, blocks = meta_combined$Location)
+set.seed(1)
+perm_location_interaction <- vegan::adonis2(
+  bc ~ Compartment + Location * Inoculation,
+  data = meta_combined, permutations = location_permutations, by = "margin"
+)
+perm_location_tbl <- as.data.frame(perm_location_interaction) %>%
+  tibble::rownames_to_column("Term")
+perm_location_row <- perm_location_tbl %>%
+  dplyr::filter(Term %in% c("Location:Inoculation", "Inoculation:Location"))
+if (nrow(perm_location_row) != 1L) {
+  stop("Location x Inoculation term missing from taxonomy model: ",
+       paste(perm_location_tbl$Term, collapse = ", "))
+}
+readr::write_tsv(perm_location_row,
+  file.path(out_dir, "PERMANOVA_taxonomy_Location_by_Inoculation.tsv"))
+# The combined output labels rows by model because an interaction changes the
+# meaning of the model-specific R2. Retain the additive-only file above too.
+readr::write_tsv(dplyr::bind_rows(
+  dplyr::mutate(perm_tbl, Model = "Five-location additive", .before = 1),
+  dplyr::mutate(perm_location_row,
+    Model = "Five-location interaction; restricted permutations within location",
+    .before = 1)
+), file.path(out_dir, "PERMANOVA_taxonomy_global.tsv"))
+message("Taxonomy Location x Inoculation interaction saved (five geographic locations).")
+
+# Direct compartment comparison on the same Bray-Curtis matrix as Figure 1B.
+# Blocking permutations by the six field environments prevents a site/water
+# difference from being mistaken for a root-versus-rhizosphere effect.
+comp_meta <- meta_combined %>%
+  mutate(Environment = factor(Environment))
+if (anyNA(comp_meta[, c("Environment", "Compartment", "Inoculation")]) ||
+    n_distinct(comp_meta$Compartment) != 2L ||
+    n_distinct(comp_meta$Inoculation) != 2L) {
+  stop("Compartment comparison requires both compartments and treatments with complete metadata.")
+}
+comp_counts <- comp_meta %>%
+  count(Environment, Compartment, Inoculation, name = "N")
+write_tsv(comp_counts, file.path(out_dir, "PERMANOVA_taxonomy_compartment_group_counts.tsv"))
+comp_permutations <- permute::how(
+  nperm = 999, blocks = comp_meta$Environment
+)
+set.seed(1)
+comp_main <- vegan::adonis2(
+  bc ~ Environment + Inoculation + Compartment,
+  data = comp_meta, permutations = comp_permutations, by = "margin"
+)
+set.seed(1)
+comp_interaction <- vegan::adonis2(
+  bc ~ Environment + Inoculation * Compartment,
+  data = comp_meta, permutations = comp_permutations, by = "margin"
+)
+comp_main_tbl <- as.data.frame(comp_main) %>%
+  tibble::rownames_to_column("Term")
+comp_interaction_tbl <- as.data.frame(comp_interaction) %>%
+  tibble::rownames_to_column("Term")
+write_tsv(comp_main_tbl, file.path(out_dir, "PERMANOVA_taxonomy_compartment_additive.tsv"))
+write_tsv(comp_interaction_tbl, file.path(out_dir, "PERMANOVA_taxonomy_compartment_interaction.tsv"))
+comp_summary <- dplyr::bind_rows(
+  comp_main_tbl %>% filter(Term == "Compartment") %>%
+    mutate(Comparison = "Root versus rhizosphere, adjusted for environment and inoculation"),
+  comp_interaction_tbl %>%
+    filter(grepl("Inoculation", Term) & grepl("Compartment", Term) & grepl(":", Term)) %>%
+    mutate(Comparison = "Difference in inoculation response between compartments")
+)
+if (nrow(comp_summary) != 2L) stop("Could not extract both compartment PERMANOVA terms.")
+comp_summary <- comp_summary %>%
+  mutate(
+    N_total = nrow(comp_meta),
+    N_rhizosphere = sum(comp_meta$Compartment == "Rhizosphere"),
+    N_root = sum(comp_meta$Compartment == "Root"),
+    Permutations = 999L,
+    Permutation_blocks = "Six field environments (Kowhai Irrigated and Rainfed separate)",
+    Distance = "Bray-Curtis on Hellinger-transformed genus proportions"
+  ) %>%
+  select(Comparison, everything())
+write_tsv(comp_summary, file.path(out_dir, "PERMANOVA_taxonomy_compartment_comparison.tsv"))
+
+# A PERMANOVA group difference may also reflect unequal multivariate spread.
+comp_disp <- vegan::betadisper(bc, comp_meta$Compartment)
+set.seed(1)
+comp_disp_test <- vegan::permutest(comp_disp, permutations = comp_permutations)
+comp_disp_tbl <- as.data.frame(comp_disp_test$tab) %>%
+  tibble::rownames_to_column("Term")
+write_tsv(comp_disp_tbl, file.path(out_dir, "PERMDISP_taxonomy_compartment.tsv"))
 
 loc_r2 <- perm_tbl$R2[perm_tbl$Term == "Location"]
 loc_p  <- perm_tbl$`Pr(>F)`[perm_tbl$Term == "Location"]
@@ -254,20 +531,26 @@ p_label <- ifelse(is.na(loc_p), "NA", ifelse(loc_p < 0.001, "<0.001", paste0("= 
 # NATURE COMMUNICATIONS STYLE GLOBAL PLOT
 # ----------------------------
 p_natcom <- ggplot(pcoa_df, aes(PCoA1, PCoA2)) +
-  geom_point(aes(color = Location, shape = Compartment), size = 1.9, alpha = 0.92, stroke = 0.25) +
-  scale_color_manual(values = loc_cols, drop = FALSE) +
+  geom_point(aes(color = Environment, shape = Compartment), size = 1.9, alpha = 0.92, stroke = 0.25) +
+  scale_color_manual(values = fig1_environment_cols, drop = FALSE) +
   scale_shape_manual(values = c(Rhizosphere = 16, Root = 17), drop = FALSE) +
-  labs(x = xlab, y = ylab, color = "Location", shape = "Compartment") +
+  labs(x = xlab, y = ylab, color = "Field environment", shape = "Compartment") +
   guides(color = guide_legend(override.aes = list(size = 2.1), order = 1),
          shape = guide_legend(override.aes = list(size = 2.1), order = 2)) +
-  theme_natcom_pcoa(base_size = 7)
+  theme_natcom_pcoa(base_size = FIG1_PCOA_BASE_SIZE)
 
-# Compact panel for merging into Fig. 1
-# 85 x 70 mm is suitable for a 2-column layout with Panel A map above or beside it.
+# Compact, legend-free panel for merging into Fig. 1. Its dimensions exactly
+# match Figure 1C so the two ordination plotting regions remain the same size.
+saveRDS(
+  p_natcom,
+  file.path(out_dir, "Fig1B_Taxonomy_PCoA_NatCom_panel.rds")
+)
 ggsave(file.path(out_dir, "Fig1B_Taxonomy_PCoA_NatCom_panel.pdf"), p_natcom,
-       width = 85, height = 70, units = "mm", useDingbats = FALSE)
+       width = FIG1_PCOA_EXPORT_WIDTH_MM, height = FIG1_PCOA_EXPORT_HEIGHT_MM,
+       units = "mm", useDingbats = FALSE)
 ggsave(file.path(out_dir, "Fig1B_Taxonomy_PCoA_NatCom_panel.png"), p_natcom,
-       width = 85, height = 70, units = "mm", dpi = 600)
+       width = FIG1_PCOA_EXPORT_WIDTH_MM, height = FIG1_PCOA_EXPORT_HEIGHT_MM,
+       units = "mm", dpi = 600)
 
 # Wider inspection version
 ggsave(file.path(out_dir, "Fig1B_Taxonomy_PCoA_NatCom_wide.pdf"), p_natcom,
@@ -276,6 +559,7 @@ ggsave(file.path(out_dir, "Fig1B_Taxonomy_PCoA_NatCom_wide.png"), p_natcom,
        width = 110, height = 80, units = "mm", dpi = 600)
 
 message("Done. Saved Nature Communications-style taxonomy PCoA to: ", out_dir)
+message("Editable Figure 1B RDS: ", file.path(out_dir, "Fig1B_Taxonomy_PCoA_NatCom_panel.rds"))
 
 })
 
@@ -339,11 +623,11 @@ REMOVE_VERTEBRATES <- TRUE
 
 # UPDATED: Eyrewell_Forest standardised here
 site_levels <- c("Eyrewell_Forest", "Kowhai", "LU_H8", "Rolleston", "West_Coast")
-inoc_levels <- c("Control", "Panch")
+inoc_levels <- c("Control", "Trichoderma")
 
-# Facet order (Kowhai appears twice)
-site_levels_k <- c("Kowhai (Rainfed)", "Kowhai (Irrigated)",
-                   setdiff(site_levels, "Kowhai"))
+# Alphabetical field order for Figure 2 ordinations and composition facets.
+site_levels_k <- c("Eyrewell_Forest", "Kowhai (Irrigated)",
+                   "Kowhai (Rainfed)", "LU_H8", "Rolleston", "West_Coast")
 
 # Legend columns
 LEGEND_NCOL_PHYLUM  <- 1
@@ -444,6 +728,17 @@ loc_cols <- c(
   "West_Coast"      = unname(okabe_ito["purple"])
 )
 
+# Six distinct field environments for Figure 2 ordinations. Keep loc_cols
+# unchanged for the separate five-location Figure 1 model and legend.
+fig2_environment_cols <- c(
+  "Eyrewell_Forest"    = "#D55E00",
+  "Kowhai (Irrigated)" = "#8C510A",
+  "Kowhai (Rainfed)"   = "#E69F00",
+  "LU_H8"              = "#009E73",
+  "Rolleston"          = "#0072B2",
+  "West_Coast"         = "#CC79A7"
+)
+
 theme_nature_ordination <- function(base_size = 7, base_family = "") {
   theme_classic(base_size = base_size, base_family = base_family) +
     theme(
@@ -527,7 +822,10 @@ read_meta <- function(meta_path) {
     mutate(
       SampleID    = norm_sampleid(SampleID),
       Location    = trimws(as.character(Location)),
-      Inoculation = trimws(as.character(Inoculation)),
+      Inoculation = ifelse(
+        tolower(trimws(as.character(Inoculation))) %in% c("panch", "trichoderma"),
+        "Trichoderma", trimws(as.character(Inoculation))
+      ),
       Water       = trimws(as.character(Water))
     ) %>%
     mutate(
@@ -539,10 +837,11 @@ read_meta <- function(meta_path) {
       Water    = na_if(Water, "N/A")
     ) %>%
     mutate(
-      Water_plot = if_else(
-        Location == "Kowhai",
-        if_else(str_detect(Water, regex("irr", ignore_case = TRUE)), "Irrigated", "Rainfed"),
-        "All"
+      Water_plot = case_when(
+        Location != "Kowhai" ~ "All",
+        str_detect(Water, regex("^irr", ignore_case = TRUE)) ~ "Irrigated",
+        str_detect(Water, regex("^rain", ignore_case = TRUE)) ~ "Rainfed",
+        TRUE ~ NA_character_
       )
     )
   
@@ -685,6 +984,52 @@ prep_genus_with_rarity_bins <- function(genus_file, meta, top_n = 50, bins = GEN
   grp2
 }
 
+# Prepare sample-level genus proportions for the simplified main Figure 2.
+# Normalising within each sample ensures that pooled genus ranking gives every
+# biological sample equal weight, irrespective of library size.
+prep_sample_genus_percent <- function(genus_file, meta, compartment_label) {
+  tax_long_with_meta(genus_file, meta) %>%
+    mutate(name = as.character(name)) %>%
+    group_by(SampleID, LocationK, Inoculation, name) %>%
+    summarise(Abundance = sum(Percent, na.rm = TRUE), .groups = "drop") %>%
+    group_by(SampleID) %>%
+    mutate(
+      Sample_total = sum(Abundance, na.rm = TRUE),
+      Percent = if_else(Sample_total > 0, Abundance / Sample_total * 100, 0)
+    ) %>%
+    ungroup() %>%
+    dplyr::select(-Abundance, -Sample_total) %>%
+    mutate(Compartment = compartment_label)
+}
+
+# Collapse sample-level genus proportions to one shared genus set, then compute
+# the mean composition for each site-by-inoculation bar.
+collapse_shared_top_genera <- function(sample_df, keep_genera,
+                                       other_label = "Other genera") {
+  legend_levels <- c(keep_genera, other_label)
+  stack_levels <- c(other_label, rev(keep_genera))
+
+  sample_df %>%
+    mutate(Taxon = if_else(name %in% keep_genera, name, other_label)) %>%
+    group_by(SampleID, LocationK, Inoculation, Taxon) %>%
+    summarise(Percent = sum(Percent, na.rm = TRUE), .groups = "drop") %>%
+    group_by(LocationK, Inoculation, Taxon) %>%
+    summarise(Percent = mean(Percent, na.rm = TRUE), .groups = "drop") %>%
+    mutate(Taxon = factor(Taxon, levels = legend_levels)) %>%
+    complete(LocationK, Inoculation, Taxon, fill = list(Percent = 0)) %>%
+    group_by(LocationK, Inoculation) %>%
+    mutate(
+      Bar_total = sum(Percent, na.rm = TRUE),
+      Percent = if_else(Bar_total > 0, Percent / Bar_total * 100, 0)
+    ) %>%
+    ungroup() %>%
+    dplyr::select(-Bar_total) %>%
+    mutate(
+      Taxon_leg = factor(as.character(Taxon), levels = legend_levels),
+      Taxon_stack = factor(as.character(Taxon), levels = stack_levels)
+    )
+}
+
 check_bar_sums <- function(df, label = "") {
   s <- df %>% group_by(LocationK, Inoculation) %>% summarise(sumP = sum(Percent), .groups = "drop")
   bad <- s %>% filter(abs(sumP - 100) > 0.01)
@@ -796,7 +1141,7 @@ plot_faceted_composition <- function(df, title, legend_title, palette,
   df2 <- df %>%
     mutate(
       LocationK   = factor(as.character(LocationK), levels = site_levels_k),
-      Inoculation = factor(as.character(Inoculation), levels = c("Control", "Panch")),
+      Inoculation = factor(as.character(Inoculation), levels = c("Control", "Trichoderma")),
       Taxon_leg   = factor(as.character(Taxon_leg), levels = levels(df$Taxon_leg)),
       Taxon_stack = factor(as.character(Taxon_stack), levels = levels(df$Taxon_stack))
     )
@@ -816,7 +1161,9 @@ plot_faceted_composition <- function(df, title, legend_title, palette,
     facet_wrap(~ LocationK, nrow = 1, drop = FALSE) +
     scale_y_continuous(limits = c(0, 100.0001),
                        expand = expansion(mult = c(0, 0.02))) +
-    scale_x_discrete(labels = c(Control = "Control", Panch = "Panch")) +
+    scale_x_discrete(labels = function(x) parse(text = ifelse(
+      x == "Trichoderma", "italic(Trichoderma)", "'Control'"
+    ))) +
     scale_fill_manual(values = pal, breaks = lev_leg, drop = FALSE) +
     guides(fill = guide_legend(ncol = legend_ncol)) +
     labs(title = title, x = NULL, y = "Mean relative abundance (%)", fill = legend_title) +
@@ -1000,30 +1347,6 @@ plot_permdisp <- function(dist_obj, meta_df, factor_var, title, out_pdf, w = 180
   invisible(list(betadisper = bd, plot = p))
 }
 
-pairwise_two_level_adonis <- function(dist_obj, meta_df, group_var = "Inoculation", permutations = 999) {
-  if (!(group_var %in% names(meta_df))) return(NULL)
-  g <- ensure_factor(meta_df[[group_var]])
-  g <- droplevels(g)
-  if (nlevels(g) != 2) return(NULL)
-  
-  dd <- data.frame(group = g)
-  perm <- vegan::adonis2(dist_obj ~ group, data = dd, permutations = permutations)
-  
-  out <- as.data.frame(perm) %>%
-    tibble::rownames_to_column("Term") %>%
-    filter(.data$Term == "group") %>%
-    transmute(
-      Contrast = paste(levels(g), collapse = " vs "),
-      Term = group_var,
-      R2 = .data$R2,
-      F  = .data$F,
-      p  = .data$`Pr(>F)`
-    )
-  
-  if (nrow(out) == 0) return(NULL)
-  out
-}
-
 # ----------------------------
 # Safe ellipse helper
 # ----------------------------
@@ -1060,7 +1383,53 @@ beta_pack_genus <- function(file, meta, fig_dir, tab_dir, prefix,
     as.data.frame()
   rownames(m) <- m$SampleID
   m <- droplevels(m)
+  m$LocationK <- factor(
+    ifelse(as.character(m$Location) == "Kowhai",
+           paste0("Kowhai (", as.character(m$Water_plot), ")"),
+           as.character(m$Location)),
+    levels = site_levels_k
+  )
+  if (anyNA(m$LocationK)) {
+    stop("Cannot label all samples as field environments; check Water_plot.")
+  }
   if (is.null(dataset_label)) dataset_label <- prefix
+
+  # Keep the five-location global model, and analyse treatment within each
+  # of the six field environments used by the composition facets.
+  field_environment <- ifelse(
+    as.character(m$Location) == "Kowhai",
+    paste0("Kowhai (", as.character(m$Water_plot), ")"),
+    as.character(m$Location)
+  )
+  m$Environment <- factor(
+    field_environment,
+    levels = c("Eyrewell_Forest", "Kowhai (Irrigated)", "Kowhai (Rainfed)",
+               "LU_H8", "Rolleston", "West_Coast")
+  )
+  if (anyNA(m$Environment)) {
+    stop("Cannot assign all samples to six environments; check Kowhai Water_plot.")
+  }
+  environment_counts <- m %>%
+    dplyr::count(Environment, Inoculation, name = "N")
+  readr::write_tsv(environment_counts,
+    file.path(tab_dir, paste0(prefix, "_Environment_by_Inoculation_counts.tsv")))
+  if (nrow(environment_counts) != 12L || any(environment_counts$N < 2L)) {
+    stop("Expected six environments with at least two samples per treatment.")
+  }
+  scope <- tibble::tibble(
+    Model = paste(dataset_label, "genus-level PERMANOVA"),
+    Location_levels_in_model = dplyr::n_distinct(m$Location),
+    Field_environments_in_dataset = dplyr::n_distinct(field_environment),
+    Definition = paste(
+      "Five-location model pools Kowhai water regimes;",
+      "six field environments are analysed separately for treatment effects."
+    )
+  )
+  readr::write_tsv(scope, file.path(tab_dir, paste0(prefix, "_MODEL_SCOPE.tsv")))
+  if (scope$Location_levels_in_model != 5 ||
+      scope$Field_environments_in_dataset != 6) {
+    warning("Expected five locations and six field environments; check Water_plot.")
+  }
   
   # ----------------------------
   # FULL PCoA (all samples)
@@ -1069,7 +1438,8 @@ beta_pack_genus <- function(file, meta, fig_dir, tab_dir, prefix,
   pcoa_df <- as.data.frame(pcoa$points)
   colnames(pcoa_df) <- c("Axis1", "Axis2")
   pcoa_df$SampleID <- rownames(pcoa_df)
-  pcoa_df <- left_join(pcoa_df, meta, by = "SampleID")
+  pcoa_df <- left_join(pcoa_df, m %>% tibble::as_tibble() %>%
+                         dplyr::select(-Environment), by = "SampleID")
   
   pos_eig <- pcoa$eig[pcoa$eig > 0]
   var_expl <- pos_eig / sum(pos_eig)
@@ -1077,14 +1447,17 @@ beta_pack_genus <- function(file, meta, fig_dir, tab_dir, prefix,
   ylab <- paste0("PCoA2 (", round(var_expl[2] * 100, 1), "%)")
   
   p_pcoa_full <- ggplot(pcoa_df, aes(Axis1, Axis2)) +
-    geom_point(aes(color = Location, shape = Inoculation),
+    geom_point(aes(color = LocationK, shape = Inoculation),
                size = 2.4, alpha = 0.9, stroke = 0.30) +
-    scale_color_manual(values = loc_cols, drop = FALSE) +
-    scale_shape_manual(values = c(Control = 16, Panch = 17), drop = FALSE) +
+    scale_color_manual(values = fig2_environment_cols, drop = FALSE) +
+    scale_shape_manual(values = c(Control = 16, Trichoderma = 17),
+                       labels = function(x) parse(text = ifelse(
+                         x == "Trichoderma", "italic(Trichoderma)", "'Control'"
+                       )), drop = FALSE) +
     labs(
       title = paste0(dataset_label, " PCoA (Bray–Curtis) — full dataset"),
       x = xlab, y = ylab,
-      color = "Location", shape = "Inoculation"
+      color = "Field environment", shape = "Inoculation"
     ) +
     theme_nature_ordination(base_size = 7)
   
@@ -1128,14 +1501,17 @@ beta_pack_genus <- function(file, meta, fig_dir, tab_dir, prefix,
   }
   
   p_pcoa_main <- ggplot(pcoa_df_main, aes(Axis1, Axis2)) +
-    geom_point(aes(color = Location, shape = Inoculation),
+    geom_point(aes(color = LocationK, shape = Inoculation),
                size = 2.4, alpha = 0.9, stroke = 0.30) +
-    scale_color_manual(values = loc_cols, drop = FALSE) +
-    scale_shape_manual(values = c(Control = 16, Panch = 17), drop = FALSE) +
+    scale_color_manual(values = fig2_environment_cols, drop = FALSE) +
+    scale_shape_manual(values = c(Control = 16, Trichoderma = 17),
+                       labels = function(x) parse(text = ifelse(
+                         x == "Trichoderma", "italic(Trichoderma)", "'Control'"
+                       )), drop = FALSE) +
     labs(
       title = main_title,
       x = xlab, y = ylab,
-      color = "Location", shape = "Inoculation"
+      color = "Field environment", shape = "Inoculation"
     ) +
     theme_nature_ordination(base_size = 7)
   
@@ -1160,12 +1536,8 @@ beta_pack_genus <- function(file, meta, fig_dir, tab_dir, prefix,
     )
   }
   
-  # ----------------------------
-  # Global PERMANOVA (full dataset)
-  # ----------------------------
-  # ----------------------------
-  # Global PERMANOVA (full dataset)
-  # ----------------------------
+  # Global five-location PERMANOVA on the full dataset. Kowhai irrigated and
+  # rainfed are pooled here, although they are separate display environments.
   perm_global <- vegan::adonis2(
     bc ~ Location + Inoculation,
     data = m,
@@ -1182,6 +1554,43 @@ beta_pack_genus <- function(file, meta, fig_dir, tab_dir, prefix,
     sep = "\t", quote = FALSE, row.names = FALSE
   )
   
+  # Test whether inoculation-associated composition differs among the six
+  # field environments. This is a single interaction test within this
+  # compartment; separate within-environment P values cannot test heterogeneity.
+  # Treatment labels are permuted within environment, leaving the six
+  # environmental groups intact. No plot/block identifier is available in
+  # this microbiome metadata; do not interpret this as a block-paired test.
+  if (!identical(attr(bc, "Labels"), rownames(m))) {
+    stop("PERMANOVA metadata order does not match Bray-Curtis sample order.")
+  }
+  env_permutations <- permute::how(nperm = permutations, blocks = m$Environment)
+  set.seed(1)
+  perm_env_interaction <- vegan::adonis2(
+    bc ~ Environment * Inoculation,
+    data = m, permutations = env_permutations, by = "margin"
+  )
+  env_interaction_df <- as.data.frame(perm_env_interaction) %>%
+    tibble::rownames_to_column("Term")
+  env_interaction_row <- env_interaction_df %>%
+    dplyr::filter(Term %in% c("Environment:Inoculation", "Inoculation:Environment"))
+  if (nrow(env_interaction_row) != 1L) {
+    stop("Could not extract Environment x Inoculation PERMANOVA interaction: ",
+         paste(env_interaction_df$Term, collapse = ", "))
+  }
+  env_interaction_summary <- env_interaction_row %>%
+    dplyr::mutate(
+      Compartment = dataset_label, N = nrow(m),
+      Field_environments = nlevels(m$Environment),
+      Permutations = permutations,
+      Permutation_blocks = "Environment (six fields; Kowhai split)",
+      .before = 1
+    )
+  readr::write_tsv(
+    env_interaction_summary,
+    file.path(tab_dir, paste0(prefix, "_PERMANOVA_Environment_by_Inoculation.tsv"))
+  )
+  message("Environment x Inoculation PERMANOVA saved: ", dataset_label)
+
   # ----------------------------
   # PERMDISP plots (full dataset)
   # ----------------------------
@@ -1197,75 +1606,73 @@ beta_pack_genus <- function(file, meta, fig_dir, tab_dir, prefix,
     w = 220, h = 120
   )
   
-  # ----------------------------
-  # Within-site PERMANOVA (full dataset)
-  # ----------------------------
-  loc_levels <- levels(droplevels(m$Location))
-  
-  per_site <- purrr::map_dfr(loc_levels, function(loc) {
-    ids <- rownames(m)[m$Location == loc]
-    if (length(ids) < min_n_site) return(NULL)
-    
-    bc_loc <- as.dist(as.matrix(bc)[ids, ids])
-    m_loc  <- droplevels(m[ids, , drop = FALSE])
-    if (nlevels(droplevels(m_loc$Inoculation)) < 2) return(NULL)
-    
-    perm <- vegan::adonis2(bc_loc ~ Inoculation, data = m_loc, permutations = permutations)
-    
-    as.data.frame(perm) %>%
-      tibble::rownames_to_column("Term") %>%
-      mutate(Location = loc, Model = "Inoculation_only", N = length(ids))
-  })
-  
-  if (nrow(per_site) == 0) {
-    per_site <- tibble(
-      Term = character(), Df = numeric(), SumOfSqs = numeric(), R2 = numeric(),
-      F = numeric(), `Pr(>F)` = numeric(), Location = character(),
-      Model = character(), N = integer()
+  # Within-environment treatment models. Kowhai Irrigated and Rainfed are
+  # separate in every site-specific test and output for each compartment.
+  message("Running six separate field-environment inoculation PERMANOVAs: ", dataset_label)
+  env_levels <- levels(droplevels(m$Environment))
+  per_environment <- purrr::map_dfr(env_levels, function(env) {
+    ids <- rownames(m)[m$Environment == env]
+    if (length(ids) < min_n_site) {
+      stop("Insufficient samples for environment ", env, ": ", length(ids))
+    }
+    m_env <- droplevels(m[ids, , drop = FALSE])
+    if (nlevels(m_env$Inoculation) != 2L) {
+      stop("Both treatments are required in environment ", env)
+    }
+    bc_env <- as.dist(as.matrix(bc)[ids, ids])
+    fit <- vegan::adonis2(
+      bc_env ~ Inoculation, data = m_env, permutations = permutations
     )
-  }
-  
-  write.table(
-    per_site,
-    file.path(tab_dir, paste0(prefix, "_PERMANOVA_WITHIN_Location_Inoculation.tsv")),
-    sep = "\t", quote = FALSE, row.names = FALSE
-  )
-  
-  # ----------------------------
-  # Pairwise within site (full dataset)
-  # ----------------------------
-  pairwise_site <- purrr::map_dfr(loc_levels, function(loc) {
-    ids <- rownames(m)[m$Location == loc]
-    if (length(ids) < min_n_site) return(NULL)
-    
-    bc_loc <- as.dist(as.matrix(bc)[ids, ids])
-    m_loc  <- droplevels(m[ids, , drop = FALSE])
-    
-    pw <- pairwise_two_level_adonis(bc_loc, m_loc, "Inoculation", permutations = permutations)
-    if (is.null(pw)) return(NULL)
-    pw %>% mutate(Location = loc, N = length(ids))
+    fit_df <- as.data.frame(fit)
+    # A single-term adonis2 result has its tested effect in the first row;
+    # vegan may label that row "Model" or "Inoculation" depending on options.
+    if (nrow(fit_df) < 1L ||
+        !rownames(fit_df)[1] %in% c("Model", "Inoculation")) {
+      stop("Unexpected adonis2 result in ", env, ": ",
+           paste(rownames(fit_df), collapse = ", "))
+    }
+    fit_df[1, , drop = FALSE] %>%
+      dplyr::mutate(Environment = env, Model = "Inoculation_only",
+                    Term = "Inoculation", N = length(ids), .before = 1)
   })
-  
-  if (nrow(pairwise_site) == 0) {
-    pairwise_site <- tibble(
-      Contrast = character(), Term = character(), R2 = numeric(),
-      F = numeric(), p = numeric(), Location = character(), N = integer()
-    )
+  if (nrow(per_environment) != 6L ||
+      !setequal(as.character(per_environment$Environment), env_levels)) {
+    stop("Expected one inoculation PERMANOVA result for each of six environments.")
   }
-  
-  write.table(
-    pairwise_site,
-    file.path(tab_dir, paste0(prefix, "_PAIRWISE_Inoculation_WITHIN_Location.tsv")),
-    sep = "\t", quote = FALSE, row.names = FALSE
+  readr::write_tsv(
+    per_environment,
+    file.path(tab_dir, paste0(prefix, "_PERMANOVA_WITHIN_Environment_Inoculation.tsv"))
   )
-  
+
+  # With exactly two treatments, the within-environment PERMANOVA already
+  # is the Control–Trichoderma comparison. Reuse that fit and its P value;
+  # running a second identical permutation test would be redundant.
+  pairwise_environment <- per_environment %>%
+    dplyr::transmute(
+      Environment,
+      Contrast = paste(levels(m$Inoculation), collapse = " vs "),
+      Term = "Inoculation", R2, F, p = .data$`Pr(>F)`, N
+    )
+  readr::write_tsv(
+    pairwise_environment,
+    file.path(tab_dir, paste0(prefix, "_PAIRWISE_Inoculation_WITHIN_Environment.tsv"))
+  )
+
+  # Remove outputs from earlier script versions that pooled the two Kowhai
+  # fields, so an old five-location table cannot be mistaken for this run.
+  unlink(file.path(tab_dir, paste0(prefix, c(
+    "_PERMANOVA_WITHIN_Location_Inoculation.tsv",
+    "_PAIRWISE_Inoculation_WITHIN_Location.tsv"
+  ))))
+
   invisible(list(
     pcoa_plot_main = p_pcoa_main,
     pcoa_plot_full = p_pcoa_full,
     pcoa_df = pcoa_df,
     perm_global = perm_global,
-    per_site = per_site,
-    pairwise = pairwise_site,
+    env_interaction = env_interaction_summary,
+    per_environment = per_environment,
+    pairwise = pairwise_environment,
     removed_ids = removed_ids
   ))
 }
@@ -1349,6 +1756,75 @@ run_one_dataset <- function(dataset_name, cfg) {
 # ----------------------------
 obj_root <- run_one_dataset("Root", DATASETS$Root)
 obj_rhiz <- run_one_dataset("Rhizosphere", DATASETS$Rhizosphere)
+
+# ----------------------------
+# Shared top 15 genera for main Figure 2 panels D and E
+# The detailed top-50 + rarity-bin figures remain unchanged above.
+# ----------------------------
+MAIN_GENUS_TOP_N <- 15
+MAIN_GENUS_OTHER_LABEL <- "Other genera"
+
+genus_samples_root_main <- prep_sample_genus_percent(
+  obj_root$paths$genus,
+  obj_root$meta,
+  compartment_label = "Root"
+)
+
+genus_samples_rhiz_main <- prep_sample_genus_percent(
+  obj_rhiz$paths$genus,
+  obj_rhiz$meta,
+  compartment_label = "Rhizosphere"
+)
+
+# Add explicit zeros when a genus occurs in only one compartment so that its
+# pooled mean is calculated across every root and rhizosphere sample.
+main_genus_ranking <- bind_rows(
+  genus_samples_root_main,
+  genus_samples_rhiz_main
+) %>%
+  dplyr::select(Compartment, SampleID, name, Percent) %>%
+  complete(
+    nesting(Compartment, SampleID),
+    name,
+    fill = list(Percent = 0)
+  ) %>%
+  group_by(name) %>%
+  summarise(Pooled_mean_percent = mean(Percent, na.rm = TRUE), .groups = "drop") %>%
+  arrange(desc(Pooled_mean_percent), name) %>%
+  mutate(Rank = row_number())
+
+main_top15_genera <- main_genus_ranking %>%
+  slice_head(n = MAIN_GENUS_TOP_N) %>%
+  pull(name)
+
+main_genus_root <- collapse_shared_top_genera(
+  genus_samples_root_main,
+  keep_genera = main_top15_genera,
+  other_label = MAIN_GENUS_OTHER_LABEL
+)
+
+main_genus_rhiz <- collapse_shared_top_genera(
+  genus_samples_rhiz_main,
+  keep_genera = main_top15_genera,
+  other_label = MAIN_GENUS_OTHER_LABEL
+)
+
+pal_gen_main <- make_name_palette_top10_npg_rest_ramp(
+  c(main_top15_genera, MAIN_GENUS_OTHER_LABEL),
+  other_like = MAIN_GENUS_OTHER_LABEL
+)
+pal_gen_main[MAIN_GENUS_OTHER_LABEL] <- "grey75"
+
+check_bar_sums(main_genus_root, "Root main Figure 2 top-15 genus")
+check_bar_sums(main_genus_rhiz, "Rhizosphere main Figure 2 top-15 genus")
+
+write.table(
+  main_genus_ranking %>% slice_head(n = MAIN_GENUS_TOP_N),
+  file.path(OUT_DIR, "Table_Figure2_Shared_Top15_Genera.tsv"),
+  sep = "\t",
+  quote = FALSE,
+  row.names = FALSE
+)
 
 # ----------------------------
 # 2) Build GLOBAL palettes by taxon name (union across both)
@@ -1471,6 +1947,9 @@ plot_and_save_all <- function(obj, dataset_title_prefix) {
     USE_GENUS_RARITY_BINS = USE_GENUS_RARITY_BINS,
     GENUS_BINS = GENUS_BINS,
     GENUS_OTHER_LABEL = GENUS_OTHER_LABEL,
+    MAIN_GENUS_TOP_N = MAIN_GENUS_TOP_N,
+    MAIN_GENUS_OTHER_LABEL = MAIN_GENUS_OTHER_LABEL,
+    MAIN_FIGURE_SHARED_GENERA = main_top15_genera,
     KEEP_VIRUSES_AS_BIN = KEEP_VIRUSES_AS_BIN,
     REMOVE_VERTEBRATES = REMOVE_VERTEBRATES,
     site_levels = site_levels,
@@ -1520,26 +1999,43 @@ library(cowplot)
 
 dir.create(SUPP_TAX_DIR, recursive = TRUE, showWarnings = FALSE)
 
-theme_supp_taxonomy <- function(base_size = 11) {
+theme_supp_taxonomy <- function(base_size = SUPP_TAX_BASE_SIZE) {
   theme_natureish(base_size = base_size) +
     theme(
       plot.title = element_text(face = "bold", size = base_size + 2, hjust = 0),
       strip.text = element_text(size = base_size, face = "bold"),
       axis.title.y = element_text(size = base_size + 1, face = "bold"),
       axis.text.y = element_text(size = base_size),
-      axis.text.x = element_text(size = base_size, colour = "black"),
+      axis.text.x = element_text(
+        size = base_size - 0.5,
+        angle = 30,
+        hjust = 1,
+        vjust = 1,
+        colour = "black"
+      ),
       legend.title = element_text(size = base_size + 1, face = "bold"),
       legend.text = element_text(size = base_size - 1),
-      legend.key.size = unit(4.2, "mm"),
-      legend.spacing.y = unit(1.5, "mm"),
+      legend.key.size = unit(5, "mm"),
+      legend.spacing.y = unit(1.2, "mm"),
       legend.box.spacing = unit(3, "mm"),
       panel.spacing.x = unit(2.5, "mm"),
-      plot.margin = margin(5, 5, 5, 5)
+      plot.margin = margin(6, 6, 8, 6)
     )
 }
 
-polish_supp_tax_panel <- function(p, panel_title, legend_ncol = 1, base_size = 11) {
+polish_supp_tax_panel <- function(
+  p,
+  panel_title,
+  legend_ncol = 1,
+  base_size = SUPP_TAX_BASE_SIZE
+) {
   p +
+    facet_wrap(
+      ~ LocationK,
+      nrow = 1,
+      drop = FALSE,
+      labeller = labeller(LocationK = as_labeller(MERGED_SITE_LABELS))
+    ) +
     labs(
       title = panel_title,
       x = NULL,
@@ -1552,19 +2048,65 @@ polish_supp_tax_panel <- function(p, panel_title, legend_ncol = 1, base_size = 1
     )
 }
 
+collapse_supp_family_top_n <- function(df, top_n = SUPP_TAX_FAMILY_TOP_N) {
+  df2 <- df %>% mutate(Taxon = as.character(Taxon))
+
+  top_families <- df2 %>%
+    filter(!is.na(Taxon), Taxon != "Other", !str_detect(Taxon, "^Other")) %>%
+    group_by(Taxon) %>%
+    summarise(MeanPercent = mean(Percent, na.rm = TRUE), .groups = "drop") %>%
+    arrange(desc(MeanPercent)) %>%
+    slice_head(n = top_n) %>%
+    pull(Taxon)
+
+  df2 %>%
+    mutate(Taxon = if_else(Taxon %in% top_families, Taxon, "Other")) %>%
+    group_by(LocationK, Inoculation, Taxon) %>%
+    summarise(Percent = sum(Percent, na.rm = TRUE), .groups = "drop") %>%
+    apply_nature_ordering(other_label = "Other", is_genus = FALSE)
+}
+
+supp_rhiz_family_df <- collapse_supp_family_top_n(
+  obj_rhiz$fam_df,
+  top_n = SUPP_TAX_FAMILY_TOP_N
+)
+
+supp_root_family_df <- collapse_supp_family_top_n(
+  obj_root$fam_df,
+  top_n = SUPP_TAX_FAMILY_TOP_N
+)
+
+supp_rhiz_family_plot <- plot_faceted_composition(
+  supp_rhiz_family_df,
+  title = paste0("Rhizosphere family composition — top ", SUPP_TAX_FAMILY_TOP_N),
+  legend_title = "Family",
+  palette = pal_fam,
+  legend_ncol = 1,
+  base_size = SUPP_TAX_BASE_SIZE
+)
+
+supp_root_family_plot <- plot_faceted_composition(
+  supp_root_family_df,
+  title = paste0("Root family composition — top ", SUPP_TAX_FAMILY_TOP_N),
+  legend_title = "Family",
+  palette = pal_fam,
+  legend_ncol = 1,
+  base_size = SUPP_TAX_BASE_SIZE
+)
+
 # Rhizosphere supplementary Figure S1: A Phylum, B Family
 p_supp_rhiz_phylum <- polish_supp_tax_panel(
   plots_rhiz$pP,
   panel_title = "Phylum-level composition",
   legend_ncol = 1,
-  base_size = 11
+  base_size = SUPP_TAX_BASE_SIZE
 )
 
 p_supp_rhiz_family <- polish_supp_tax_panel(
-  plots_rhiz$pF,
-  panel_title = "Family-level composition",
-  legend_ncol = 2,
-  base_size = 11
+  supp_rhiz_family_plot,
+  panel_title = paste0("Family-level composition (top ", SUPP_TAX_FAMILY_TOP_N, ")"),
+  legend_ncol = 1,
+  base_size = SUPP_TAX_BASE_SIZE
 )
 
 figS1_rhiz_taxonomy <- cowplot::plot_grid(
@@ -1572,9 +2114,9 @@ figS1_rhiz_taxonomy <- cowplot::plot_grid(
   p_supp_rhiz_family,
   ncol = 1,
   labels = c("A", "B"),
-  label_size = 18,
+  label_size = SUPP_TAX_TAG_SIZE,
   label_fontface = "bold",
-  rel_heights = c(1.0, 1.25),
+  rel_heights = c(1.0, 1.30),
   align = "v",
   axis = "lr"
 )
@@ -1582,8 +2124,8 @@ figS1_rhiz_taxonomy <- cowplot::plot_grid(
 ggsave(
   file.path(SUPP_TAX_DIR, "FigureS1_Rhizosphere_Taxonomic_Composition_Merged_NatCom.pdf"),
   figS1_rhiz_taxonomy,
-  width = 320,
-  height = 250,
+  width = SUPP_TAX_EXPORT_WIDTH_MM,
+  height = SUPP_TAX_EXPORT_HEIGHT_MM,
   units = "mm",
   dpi = 600,
   useDingbats = FALSE,
@@ -1593,8 +2135,8 @@ ggsave(
 ggsave(
   file.path(SUPP_TAX_DIR, "FigureS1_Rhizosphere_Taxonomic_Composition_Merged_NatCom.png"),
   figS1_rhiz_taxonomy,
-  width = 320,
-  height = 250,
+  width = SUPP_TAX_EXPORT_WIDTH_MM,
+  height = SUPP_TAX_EXPORT_HEIGHT_MM,
   units = "mm",
   dpi = 600,
   limitsize = FALSE
@@ -1603,8 +2145,8 @@ ggsave(
 ggsave(
   file.path(SUPP_TAX_DIR, "FigureS1_Rhizosphere_Taxonomic_Composition_Merged_NatCom.svg"),
   figS1_rhiz_taxonomy,
-  width = 320,
-  height = 250,
+  width = SUPP_TAX_EXPORT_WIDTH_MM,
+  height = SUPP_TAX_EXPORT_HEIGHT_MM,
   units = "mm",
   limitsize = FALSE
 )
@@ -1614,14 +2156,14 @@ p_supp_root_phylum <- polish_supp_tax_panel(
   plots_root$pP,
   panel_title = "Phylum-level composition",
   legend_ncol = 1,
-  base_size = 11
+  base_size = SUPP_TAX_BASE_SIZE
 )
 
 p_supp_root_family <- polish_supp_tax_panel(
-  plots_root$pF,
-  panel_title = "Family-level composition",
-  legend_ncol = 2,
-  base_size = 11
+  supp_root_family_plot,
+  panel_title = paste0("Family-level composition (top ", SUPP_TAX_FAMILY_TOP_N, ")"),
+  legend_ncol = 1,
+  base_size = SUPP_TAX_BASE_SIZE
 )
 
 figS2_root_taxonomy <- cowplot::plot_grid(
@@ -1629,9 +2171,9 @@ figS2_root_taxonomy <- cowplot::plot_grid(
   p_supp_root_family,
   ncol = 1,
   labels = c("A", "B"),
-  label_size = 18,
+  label_size = SUPP_TAX_TAG_SIZE,
   label_fontface = "bold",
-  rel_heights = c(1.0, 1.25),
+  rel_heights = c(1.0, 1.30),
   align = "v",
   axis = "lr"
 )
@@ -1639,8 +2181,8 @@ figS2_root_taxonomy <- cowplot::plot_grid(
 ggsave(
   file.path(SUPP_TAX_DIR, "FigureS2_Root_Taxonomic_Composition_Merged_NatCom.pdf"),
   figS2_root_taxonomy,
-  width = 320,
-  height = 250,
+  width = SUPP_TAX_EXPORT_WIDTH_MM,
+  height = SUPP_TAX_EXPORT_HEIGHT_MM,
   units = "mm",
   dpi = 600,
   useDingbats = FALSE,
@@ -1650,8 +2192,8 @@ ggsave(
 ggsave(
   file.path(SUPP_TAX_DIR, "FigureS2_Root_Taxonomic_Composition_Merged_NatCom.png"),
   figS2_root_taxonomy,
-  width = 320,
-  height = 250,
+  width = SUPP_TAX_EXPORT_WIDTH_MM,
+  height = SUPP_TAX_EXPORT_HEIGHT_MM,
   units = "mm",
   dpi = 600,
   limitsize = FALSE
@@ -1660,8 +2202,8 @@ ggsave(
 ggsave(
   file.path(SUPP_TAX_DIR, "FigureS2_Root_Taxonomic_Composition_Merged_NatCom.svg"),
   figS2_root_taxonomy,
-  width = 320,
-  height = 250,
+  width = SUPP_TAX_EXPORT_WIDTH_MM,
+  height = SUPP_TAX_EXPORT_HEIGHT_MM,
   units = "mm",
   limitsize = FALSE
 )
@@ -1693,13 +2235,45 @@ dir.create(NATCOM_DIR, recursive = TRUE, showWarnings = FALSE)
 # A–B: PCoA panels
 # ----------------------------
 p_fig2_rhiz <- plots_rhiz$pPCOA_main +
-  labs(title = "Rhizosphere", colour = "Location", shape = "Inoculation") +
-  theme_nature_ordination(base_size = 7) +
-  theme(legend.position = "none")
+  labs(title = "Rhizosphere", colour = "Field environment", shape = "Inoculation") +
+  theme_nature_ordination(base_size = FIG2_PCOA_BASE_SIZE) +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(size = FIG2_PCOA_TITLE_SIZE, face = "bold", hjust = 0),
+    axis.title = element_text(
+      size = FIG2_PCOA_AXIS_TITLE_SIZE,
+      face = "bold",
+      colour = "black"
+    ),
+    axis.text = element_text(size = FIG2_PCOA_AXIS_TEXT_SIZE, colour = "black"),
+    aspect.ratio = FIG2_PCOA_ASPECT_RATIO,
+    plot.margin = margin(4, 4, 4, 4)
+  )
 
 p_fig2_root <- plots_root$pPCOA_main +
-  labs(title = "Root", colour = "Location", shape = "Inoculation") +
-  theme_nature_ordination(base_size = 7)
+  labs(title = "Root", colour = "Field environment", shape = "Inoculation") +
+  # Panel B also contains the shared legend. Fewer x-axis breaks prevent the
+  # large tick labels from running together in the compact plotting region.
+  scale_x_continuous(
+    breaks = scales::breaks_width(FIG2_ROOT_X_BREAK_WIDTH),
+    labels = scales::label_number(accuracy = 0.01)
+  ) +
+  theme_nature_ordination(base_size = FIG2_PCOA_BASE_SIZE) +
+  theme(
+    plot.title = element_text(size = FIG2_PCOA_TITLE_SIZE, face = "bold", hjust = 0),
+    axis.title = element_text(
+      size = FIG2_PCOA_AXIS_TITLE_SIZE,
+      face = "bold",
+      colour = "black"
+    ),
+    axis.text = element_text(size = FIG2_PCOA_AXIS_TEXT_SIZE, colour = "black"),
+    legend.title = element_text(size = FIG2_PCOA_LEGEND_TITLE_SIZE, face = "bold"),
+    legend.text = element_text(size = FIG2_PCOA_LEGEND_TEXT_SIZE),
+    legend.key.size = grid::unit(4.2, "mm"),
+    legend.spacing.y = grid::unit(1.2, "mm"),
+    aspect.ratio = FIG2_PCOA_ASPECT_RATIO,
+    plot.margin = margin(4, 4, 4, 4)
+  )
 
 # ----------------------------
 # C: PERMANOVA treatment R2
@@ -1714,66 +2288,124 @@ perm_fig2 <- tibble::tibble(
 p_fig2_perm <- ggplot(perm_fig2, aes(x = Compartment, y = Treatment_R2)) +
   geom_col(width = 0.55, fill = c("grey75", "#0072B2"),
            colour = "black", linewidth = 0.25) +
-  geom_text(aes(label = Label), vjust = -0.20, size = 2.2, lineheight = 0.9) +
+  geom_text(aes(label = Label), vjust = -0.20, size = 4.6, lineheight = 0.9) +
   scale_y_continuous(limits = c(0, 0.085), expand = expansion(mult = c(0, 0.04))) +
   labs(title = "Inoculation effect", x = NULL, y = "Treatment R²") +
-  theme_nature_ordination(base_size = 7) +
+  theme_nature_ordination(base_size = FIG2_PCOA_BASE_SIZE) +
   theme(
-    axis.text.x = element_text(angle = 30, hjust = 1, colour = "black"),
+    plot.title = element_text(size = FIG2_PCOA_TITLE_SIZE, face = "bold", hjust = 0),
+    axis.title = element_text(
+      size = FIG2_PCOA_AXIS_TITLE_SIZE,
+      face = "bold",
+      colour = "black"
+    ),
+    axis.text.x = element_text(
+      size = FIG2_PCOA_AXIS_TEXT_SIZE,
+      angle = 30,
+      hjust = 1,
+      colour = "black"
+    ),
+    axis.text.y = element_text(size = FIG2_PCOA_AXIS_TEXT_SIZE, colour = "black"),
     legend.position = "none"
   )
 
 # ----------------------------
 # D–E: genus stacked composition panels
 # ----------------------------
-p_fig2D_rhiz_genus <- plots_rhiz$pG +
+p_fig2D_rhiz_genus <- plot_faceted_composition(
+  main_genus_rhiz,
+  title = "Rhizosphere genus composition",
+  legend_title = "Genus",
+  palette = pal_gen_main,
+  legend_ncol = 1,
+  base_size = FIG2_STACK_BASE_SIZE
+) +
+  facet_wrap(
+    ~ LocationK,
+    nrow = 1,
+    drop = FALSE,
+    labeller = labeller(LocationK = as_labeller(MERGED_SITE_LABELS))
+  ) +
   labs(
     title = "Rhizosphere genus composition",
     x = NULL,
     y = "Mean relative abundance (%)",
     fill = "Genus"
   ) +
-  theme_natureish(base_size = 7) +
+  theme_natureish(base_size = FIG2_STACK_BASE_SIZE) +
   theme(
     plot.title = element_text(
       face = "bold",
-      size = 9,
+      size = FIG2_STACK_TITLE_SIZE,
       hjust = 0
     ),
-    strip.text = element_text(size = 7, face = "bold"),
-    axis.text.x = element_text(size = 6, angle = 0, hjust = 0.5),
-    axis.text.y = element_text(size = 6),
-    axis.title.y = element_text(size = 7, face = "bold"),
+    strip.text = element_text(size = FIG2_STACK_BASE_SIZE, face = "bold"),
+    axis.text.x = element_text(
+      size = FIG2_STACK_BASE_SIZE - 0.5,
+      angle = FIG2_STACK_X_TEXT_ANGLE,
+      hjust = 1,
+      vjust = 1,
+      colour = "black"
+    ),
+    axis.text.y = element_text(size = FIG2_STACK_BASE_SIZE - 0.5),
+    axis.title.y = element_text(size = FIG2_STACK_BASE_SIZE + 0.5, face = "bold"),
     legend.position = "none",
     panel.spacing.x = unit(1, "mm"),
-    plot.margin = margin(3, 3, 3, 3)
+    plot.margin = margin(3, 3, 7, 3)
   )
 
-p_fig2E_root_genus <- plots_root$pG +
+p_fig2E_root_genus <- plot_faceted_composition(
+  main_genus_root,
+  title = "Root genus composition",
+  legend_title = "Genus",
+  palette = pal_gen_main,
+  legend_ncol = 1,
+  base_size = FIG2_STACK_BASE_SIZE
+) +
+  facet_wrap(
+    ~ LocationK,
+    nrow = 1,
+    drop = FALSE,
+    labeller = labeller(LocationK = as_labeller(MERGED_SITE_LABELS))
+  ) +
   labs(
     title = "Root genus composition",
     x = NULL,
     y = "Mean relative abundance (%)",
     fill = "Genus"
   ) +
-  theme_natureish(base_size = 7) +
+  guides(
+    fill = guide_legend(
+      ncol = 1,
+      byrow = TRUE,
+      title.position = "top"
+    )
+  ) +
+  theme_natureish(base_size = FIG2_STACK_BASE_SIZE) +
   theme(
     plot.title = element_text(
       face = "bold",
-      size = 9,
+      size = FIG2_STACK_TITLE_SIZE,
       hjust = 0
     ),
-    strip.text = element_text(size = 7, face = "bold"),
-    axis.text.x = element_text(size = 6, angle = 0, hjust = 0.5),
-    axis.text.y = element_text(size = 6),
-    axis.title.y = element_text(size = 7, face = "bold"),
-    legend.title = element_text(size = 8, face = "bold"),
-    legend.text = element_text(size = 6),
-    legend.key.height = unit(1.8, "mm"),
-    legend.key.width = unit(1.8, "mm"),
+    strip.text = element_text(size = FIG2_STACK_BASE_SIZE, face = "bold"),
+    axis.text.x = element_text(
+      size = FIG2_STACK_BASE_SIZE - 0.5,
+      angle = FIG2_STACK_X_TEXT_ANGLE,
+      hjust = 1,
+      vjust = 1,
+      colour = "black"
+    ),
+    axis.text.y = element_text(size = FIG2_STACK_BASE_SIZE - 0.5),
+    axis.title.y = element_text(size = FIG2_STACK_BASE_SIZE + 0.5, face = "bold"),
+    legend.title = element_text(size = FIG2_STACK_LEGEND_TITLE_SIZE, face = "bold"),
+    legend.text = element_text(size = FIG2_STACK_LEGEND_TEXT_SIZE),
+    legend.key.height = grid::unit(3.8, "mm"),
+    legend.key.width = grid::unit(3.2, "mm"),
+    legend.spacing.y = grid::unit(0.2, "mm"),
     legend.position = "right",
     panel.spacing.x = unit(1, "mm"),
-    plot.margin = margin(3, 3, 3, 3)
+    plot.margin = margin(3, 3, 7, 3)
   )
 
 # ----------------------------
@@ -1785,9 +2417,9 @@ fig2_top <- cowplot::plot_grid(
   p_fig2_perm,
   nrow = 1,
   labels = c("A", "B", "C"),
-  label_size = 12,
+  label_size = FIG2_TAG_SIZE,
   label_fontface = "bold",
-  rel_widths = c(1, 1.25, 0.65),
+  rel_widths = c(0.78, 1.40, 0.85),
   align = "h",
   axis = "tb"
 )
@@ -1800,7 +2432,7 @@ fig2_bottom <- cowplot::plot_grid(
   p_fig2E_root_genus,
   nrow = 1,
   labels = c("D", "E"),
-  label_size = 12,
+  label_size = FIG2_TAG_SIZE,
   label_fontface = "bold",
   rel_widths = c(1, 1.4),
   align = "h",
@@ -1814,7 +2446,7 @@ fig2_taxonomy_response <- cowplot::plot_grid(
   fig2_top,
   fig2_bottom,
   ncol = 1,
-  rel_heights = c(1.0, 0.75),
+  rel_heights = c(1.0, 0.80),
   align = "v"
 )
 
@@ -1822,7 +2454,7 @@ ggsave(
   file.path(MAIN_FIG_DIR, "Figure2_Taxonomic_Response_NatCom.png"),
   fig2_taxonomy_response,
   width = 350,
-  height = 200,
+  height = FIG2_EXPORT_HEIGHT_MM,
   units = "mm",
   dpi = 600,
   limitsize = FALSE
@@ -1832,7 +2464,7 @@ ggsave(
   file.path(MAIN_FIG_DIR, "Figure2_Taxonomic_Response_NatCom.svg"),
   fig2_taxonomy_response,
   width = 350,
-  height = 200,
+  height = FIG2_EXPORT_HEIGHT_MM,
   units = "mm",
   limitsize = FALSE
 )
@@ -1841,7 +2473,7 @@ ggsave(
   file.path(MAIN_FIG_DIR, "Figure2_Taxonomic_Response_NatCom.pdf"),
   fig2_taxonomy_response,
   width = 350,
-  height = 200,
+  height = FIG2_EXPORT_HEIGHT_MM,
   units = "mm",
   useDingbats = FALSE,
   limitsize = FALSE
@@ -1864,6 +2496,12 @@ message("Manuscript-ready Figure 2 written to: ", NATCOM_DIR)
 
 
 run_section('Step 3 — Merge Figure 1 panels after map, taxonomy PCoA, and pathway PCoA panels exist', required = FALSE, code = function() {
+message(
+  "Figure 1B has been exported. Run ",
+  file.path(PROJECT_DIR, "Biomass", "run_location_figure1_pipeline.R"),
+  " after Figure 1C has also been exported to assemble the final figure."
+)
+return(invisible(NULL))
 # ============================================================
 # Merge Figure 1 panels: A map, B taxonomy PCoA, C pathway PCoA
 # ============================================================

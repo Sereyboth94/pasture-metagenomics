@@ -1,0 +1,46 @@
+Linear mixed model fit by REML. t-tests use Satterthwaite's method ['lmerModLmerTest']
+Formula: Weight ~ Location * Treatment + (1 | Block)
+   Data: dat
+
+REML criterion at convergence: 1275.4
+
+Scaled residuals: 
+     Min       1Q   Median       3Q      Max 
+-1.83772 -0.41918 -0.00078  0.43664  1.89688 
+
+Random effects:
+ Groups   Name        Variance Std.Dev.
+ Block    (Intercept) 315499   561.7   
+ Residual              30489   174.6   
+Number of obs: 96, groups:  Block, 48
+
+Fixed effects:
+                     Estimate Std. Error       df t value Pr(>|t|)    
+(Intercept)          2278.748     83.009   42.000  27.452  < 2e-16 ***
+Location1             -60.870    185.614   42.000  -0.328   0.7446    
+Location2            -272.248    185.614   42.000  -1.467   0.1499    
+Location3            -422.373    185.614   42.000  -2.276   0.0280 *  
+Location4            -232.284    185.614   42.000  -1.251   0.2177    
+Location5             428.724    185.614   42.000   2.310   0.0259 *  
+Treatment1           -139.151     17.821   42.000  -7.808 1.04e-09 ***
+Location1:Treatment1  -41.311     39.850   42.000  -1.037   0.3058    
+Location2:Treatment1   -3.849     39.850   42.000  -0.097   0.9235    
+Location3:Treatment1    7.276     39.850   42.000   0.183   0.8560    
+Location4:Treatment1   30.260     39.850   42.000   0.759   0.4519    
+Location5:Treatment1   22.468     39.850   42.000   0.564   0.5759    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Correlation of Fixed Effects:
+            (Intr) Loctn1 Loctn2 Loctn3 Loctn4 Loctn5 Trtmn1 Lc1:T1 Lc2:T1 Lc3:T1 Lc4:T1
+Location1    0.000                                                                      
+Location2    0.000 -0.200                                                               
+Location3    0.000 -0.200 -0.200                                                        
+Location4    0.000 -0.200 -0.200 -0.200                                                 
+Location5    0.000 -0.200 -0.200 -0.200 -0.200                                          
+Treatment1   0.000  0.000  0.000  0.000  0.000  0.000                                   
+Lctn1:Trtm1  0.000  0.000  0.000  0.000  0.000  0.000  0.000                            
+Lctn2:Trtm1  0.000  0.000  0.000  0.000  0.000  0.000  0.000 -0.200                     
+Lctn3:Trtm1  0.000  0.000  0.000  0.000  0.000  0.000  0.000 -0.200 -0.200              
+Lctn4:Trtm1  0.000  0.000  0.000  0.000  0.000  0.000  0.000 -0.200 -0.200 -0.200       
+Lctn5:Trtm1  0.000  0.000  0.000  0.000  0.000  0.000  0.000 -0.200 -0.200 -0.200 -0.200

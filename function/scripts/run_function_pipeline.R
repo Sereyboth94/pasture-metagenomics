@@ -19,6 +19,135 @@ dir.create(STAGING_DIR, recursive = TRUE, showWarnings = FALSE)
 dir.create(MAIN_FIG_DIR, recursive = TRUE, showWarnings = FALSE)
 dir.create(SUPP_FUNC_DIR, recursive = TRUE, showWarnings = FALSE)
 
+# Text sizes for panels that are assembled into multi-panel manuscript figures.
+# These values improve readability after reduction without changing the data,
+# scales, panel arrangement, or final export dimensions.
+MERGED_BASE_SIZE         <- 9
+MERGED_TITLE_SIZE        <- 11
+MERGED_LEGEND_TITLE_SIZE <- 10
+MERGED_LEGEND_TEXT_SIZE  <- 9
+MERGED_TAG_SIZE          <- 14
+
+# Figure 1C is exported without a legend because Figure 1 uses one shared
+# legend to the right of Panels B and C. Keep these dimensions and text sizes
+# identical to the Figure 1B settings in run_taxonomy_pipeline.R.
+FIG1_PCOA_BASE_SIZE         <- 11
+FIG1_PCOA_AXIS_TITLE_SIZE   <- 13
+FIG1_PCOA_AXIS_TEXT_SIZE    <- 11
+FIG1_PCOA_EXPORT_WIDTH_MM   <- 85
+FIG1_PCOA_EXPORT_HEIGHT_MM  <- 70
+FIG1_PANEL_VERSION          <- "Functional pipeline v20: location and environment interaction models"
+message(FIG1_PANEL_VERSION)
+
+# Pathway screens are exploratory: nominal ALDEx2 we.ep < 0.10 and
+# |effect| > 0.25. BH-adjusted we.eBH < 0.05 is reported separately.
+# Do not describe pathways selected by the nominal screen as FDR significant.
+PATHWAY_NOMINAL_P <- 0.10
+PATHWAY_EFFECT_MIN <- 0.25
+PATHWAY_ADJUSTED_Q <- 0.05
+
+# Figure 1C and the site-specific volcanoes show six field environments. The
+# global PERMANOVA and cross-location consistency analyses retain five sites.
+FUNCTION_ENV_LEVELS <- c(
+  "Eyrewell_Forest", "Kowhai_Irrigated", "Kowhai_Rainfed",
+  "LU_H8", "Rolleston", "West_Coast"
+)
+
+# Figures 1C, 3 and 4 display six field environments. The five-location
+# loc_cols palette below remains available for site-level analyses.
+functional_environment_cols <- c(
+  "Eyrewell_Forest"   = "#D55E00",
+  "Kowhai_Irrigated"  = "#8C510A",
+  "Kowhai_Rainfed"    = "#E69F00",
+  "LU_H8"             = "#009E73",
+  "Rolleston"         = "#0072B2",
+  "West_Coast"        = "#CC79A7"
+)
+pretty_environment_label <- function(x) {
+  dplyr::recode(
+    as.character(x),
+    "Eyrewell_Forest" = "Eyrewell Forest",
+    "Kowhai_Irrigated" = "Kowhai (Irrigated)",
+    "Kowhai_Rainfed" = "Kowhai (Rainfed)",
+    "West_Coast" = "West Coast",
+    .default = as.character(x)
+  )
+}
+fig4_environment_axis_label <- function(x) {
+  y <- pretty_environment_label(x)
+  y[y == "Eyrewell Forest"] <- "Eyrewell"
+  y[y == "Kowhai (Irrigated)"] <- "Kowhai Irr."
+  y[y == "Kowhai (Rainfed)"] <- "Kowhai Rain."
+  y
+}
+
+# Import code accepts the original workbook treatment name and standardises it
+# to Trichoderma before modelling. Plotmath italicises the genus in figures.
+trichoderma_inoculation_labels <- function(x) {
+  parse(text = ifelse(x == "Trichoderma", "italic(Trichoderma)", "'Control'"))
+}
+trichoderma_direction_labels <- function(x) {
+  parse(text = ifelse(
+    x == "Higher in Trichoderma",
+    "'Higher in ' * italic(Trichoderma)",
+    paste0("'", x, "'")
+  ))
+}
+trichoderma_title <- function(x) {
+  parts <- strsplit(x, "Trichoderma", fixed = TRUE)[[1]]
+  if (length(parts) == 1L) return(x)
+  out <- parts[[1]]
+  for (part in parts[-1]) {
+    out <- call("*", call("*", out, quote(italic(Trichoderma))), part)
+  }
+  out
+}
+
+# Figure 3 matches the compact PCoA geometry and typography used in the top
+# row of taxonomy Figure 2. The A and B plotting regions are taller than wide,
+# leaving enough room for readable labels and the shared legend in Panel B.
+FIG3_PCOA_BASE_SIZE         <- 15
+FIG3_PCOA_TITLE_SIZE        <- 19
+FIG3_PCOA_AXIS_TITLE_SIZE   <- 17
+FIG3_PCOA_AXIS_TEXT_SIZE    <- 15
+FIG3_PCOA_LEGEND_TITLE_SIZE <- 16
+FIG3_PCOA_LEGEND_TEXT_SIZE  <- 14
+FIG3_PCOA_ASPECT_RATIO      <- 1.18
+FIG3_TAG_SIZE               <- 20
+FIG3_WIDTH_MM               <- 350
+FIG3_HEIGHT_MM              <- 115
+
+# Figure 4 is exported on a wide 530-mm canvas and is subsequently reduced for
+# the manuscript. These larger source sizes remain readable after reduction.
+FIG4_SOURCE_BASE_SIZE    <- 11
+FIG4_PATHWAY_TEXT_SIZE   <- 17
+FIG4_SITE_TEXT_SIZE      <- 19
+FIG4_TITLE_SIZE          <- 20
+FIG4_LEGEND_TITLE_SIZE   <- 19
+FIG4_LEGEND_TEXT_SIZE    <- 18
+FIG4_TAG_SIZE            <- 30
+FIG4_FIELD_TEXT_SIZE     <- 16
+
+# Figure 5 typography is set at the source-figure scale so the labels remain
+# readable when the two contributor panels are reduced for the manuscript.
+FIG5_SOURCE_BASE_SIZE    <- 12
+FIG5_PATHWAY_TEXT_SIZE   <- 13
+FIG5_PATHWAY_TEXT_ANGLE  <- 55
+FIG5_TAXON_TEXT_SIZE     <- 13
+FIG5_TITLE_SIZE          <- 18
+FIG5_LEGEND_TITLE_SIZE   <- 14
+FIG5_LEGEND_TEXT_SIZE    <- 12
+FIG5_TAG_SIZE            <- 24
+FIG5_EXPORT_WIDTH_MM     <- 380
+FIG5_EXPORT_HEIGHT_MM    <- 170
+
+# Supplementary Figure S5 keeps the quantitative colour and size encodings,
+# but uses a visible minimum point size, a darker blue endpoint and outlines.
+FIGS5_POINT_SIZE_RANGE   <- c(2.6, 8)
+FIGS5_LOW_COLOUR         <- "#08306B"
+FIGS5_OUTLINE_COLOUR     <- "grey25"
+FIGS5_OUTLINE_STROKE     <- 0.35
+
 message("Repository root: ", repo_root)
 message("Staging/merged output: ", STAGING_DIR)
 message("Main manuscript figures: ", MAIN_FIG_DIR)
@@ -58,7 +187,7 @@ copy_matching <- function(from_dir, patterns, to_dir) {
 
 copy_outputs <- function() {
   main_patterns <- c(
-    "^Fig1C_Pathway_PCoA_NatCom_panel\\.(pdf|png)$",
+    "^Fig1C_Pathway_PCoA_NatCom_panel\\.(pdf|png|rds)$",
     "^Figure3_Functional_Response_NatCom\\.(pdf|png|svg)$",
     "^Figure4_Functional_Pathway_Consistency_NatCom\\.(pdf|png|svg)$",
     "^Figure5_Stratified_Pathway_Contributors_NatCom\\.(pdf|png|svg)$"
@@ -118,21 +247,30 @@ loc_cols <- c(
   "Rolleston"       = "#0072B2",
   "West_Coast"      = "#CC79A7"
 )
+fig1_environment_cols <- c(
+  "Eyrewell_Forest"    = "#D55E00",
+  "Kowhai (Irrigated)" = "#8C510A",
+  "Kowhai (Rainfed)"   = "#E69F00",
+  "LU_H8"              = "#009E73",
+  "Rolleston"          = "#0072B2",
+  "West_Coast"         = "#CC79A7"
+)
 
 theme_natcom_pcoa <- function(base_size = 7, base_family = "") {
   theme_classic(base_size = base_size, base_family = base_family) +
     theme(
       plot.title = element_blank(),
-      axis.title = element_text(face = "bold", size = base_size + 1),
-      axis.text = element_text(color = "black", size = base_size),
+      axis.title = element_text(face = "bold", size = FIG1_PCOA_AXIS_TITLE_SIZE),
+      axis.text = element_text(color = "black", size = FIG1_PCOA_AXIS_TEXT_SIZE),
       axis.line = element_line(linewidth = 0.3),
       axis.ticks = element_line(linewidth = 0.3),
       legend.title = element_text(face = "bold", size = base_size),
-      legend.text = element_text(size = base_size - 0.2),
+      legend.text = element_text(size = base_size),
       legend.key.size = unit(0.32, "cm"),
       legend.spacing.y = unit(0.02, "cm"),
       panel.border = element_rect(fill = NA, linewidth = 0.3, color = "black"),
-      plot.margin = margin(3, 3, 3, 3)
+      legend.position = "none",
+      plot.margin = margin(4, 4, 4, 4)
     )
 }
 
@@ -167,11 +305,11 @@ read_meta_rhizo <- function(fp) {
       ),
       Inoculation = case_when(
         str_to_lower(Inoculation) == "control" ~ "Control",
-        str_to_lower(Inoculation) == "panch"   ~ "Panch",
+        str_to_lower(Inoculation) %in% c("panch", "trichoderma")   ~ "Trichoderma",
         TRUE ~ Inoculation
       )
     ) %>%
-    select(SampleID, Location, Inoculation, Compartment)
+    select(SampleID, Location, Inoculation, Water, Compartment)
 }
 
 read_meta_root <- function(fp) {
@@ -180,6 +318,7 @@ read_meta_root <- function(fp) {
       SampleID    = trimws(as.character(SampleID)),
       Location    = trimws(as.character(Location)),
       Inoculation = trimws(as.character(Inoculation)),
+      Water       = if ("Water" %in% names(.)) trimws(as.character(Water)) else NA_character_,
       Compartment = "Root"
     ) %>%
     mutate(
@@ -190,11 +329,11 @@ read_meta_root <- function(fp) {
       ),
       Inoculation = case_when(
         str_to_lower(Inoculation) == "control" ~ "Control",
-        str_to_lower(Inoculation) == "panch"   ~ "Panch",
+        str_to_lower(Inoculation) %in% c("panch", "trichoderma")   ~ "Trichoderma",
         TRUE ~ Inoculation
       )
     ) %>%
-    select(SampleID, Location, Inoculation, Compartment)
+    select(SampleID, Location, Inoculation, Water, Compartment)
 }
 
 expand_mat <- function(mat, features) {
@@ -227,13 +366,47 @@ meta_combined <- meta_combined %>%
   filter(SampleID %in% common_samples) %>%
   mutate(
     Location = factor(Location, levels = names(loc_cols)),
-    Inoculation = factor(Inoculation, levels = c("Control", "Panch")),
-    Compartment = factor(Compartment, levels = c("Rhizosphere", "Root"))
+    Inoculation = factor(Inoculation, levels = c("Control", "Trichoderma")),
+    Compartment = factor(Compartment, levels = c("Rhizosphere", "Root")),
+    Environment = case_when(
+      as.character(Location) == "Kowhai" &
+        stringr::str_detect(Water, stringr::regex("^irr", ignore_case = TRUE)) ~
+        "Kowhai (Irrigated)",
+      as.character(Location) == "Kowhai" &
+        stringr::str_detect(Water, stringr::regex("^rain", ignore_case = TRUE)) ~
+        "Kowhai (Rainfed)",
+      as.character(Location) == "Kowhai" ~ NA_character_,
+      TRUE ~ as.character(Location)
+    )
   ) %>%
   arrange(Location, Compartment, Inoculation, SampleID)
 
 X <- X[, meta_combined$SampleID, drop = FALSE]
 stopifnot(identical(colnames(X), meta_combined$SampleID))
+
+# The model pools Kowhai irrigated and rainfed samples into one Location.
+# Environment records six field conditions in the data, not a sixth site.
+model_scope <- tibble::tibble(
+  Model = "Figure 1C pathway global PERMANOVA",
+  Location_levels_in_model = n_distinct(meta_combined$Location, na.rm = TRUE),
+  Field_environments_in_dataset = n_distinct(meta_combined$Environment),
+  Definition = paste(
+    "Location has five sites; Kowhai irrigated and rainfed are pooled.",
+    "The ordination colours show six environments; the PERMANOVA model uses five locations."
+  )
+)
+readr::write_tsv(model_scope, file.path(out_dir, "Figure1C_model_scope.tsv"))
+if (model_scope$Location_levels_in_model != 5 ||
+    model_scope$Field_environments_in_dataset != 6) {
+  warning("Expected five locations and six field environments; check Water labels.")
+}
+if (anyNA(meta_combined$Environment) ||
+    !setequal(unique(meta_combined$Environment), names(fig1_environment_cols))) {
+  stop("Figure 1C needs all six field environments with valid Kowhai Water labels.")
+}
+meta_combined$Environment <- factor(
+  meta_combined$Environment, levels = names(fig1_environment_cols)
+)
 
 X_path <- t(X)
 storage.mode(X_path) <- "numeric"
@@ -247,6 +420,7 @@ X_path <- X_path[, colSums(X_path) > 0, drop = FALSE]
 set.seed(1)
 d_bray <- vegan::vegdist(X_path, method = "bray")
 
+# Five-location model; Kowhai water regimes are not separate Location levels.
 perm_global <- vegan::adonis2(
   d_bray ~ Location + Compartment + Inoculation,
   data = meta_combined,
@@ -255,7 +429,101 @@ perm_global <- vegan::adonis2(
 )
 
 perm_global_tbl <- as.data.frame(perm_global) %>% tibble::rownames_to_column("Term")
-readr::write_tsv(perm_global_tbl, file.path(out_dir, "PERMANOVA_pathway_global.tsv"))
+readr::write_tsv(perm_global_tbl,
+  file.path(out_dir, "PERMANOVA_pathway_global_additive.tsv"))
+
+# Five-geographic-location x inoculation test adjusted for compartment.
+# Kowhai water regimes are pooled here. Root and rhizosphere share plots, but
+# plot IDs are unavailable in this metadata; interpret the combined test with
+# this pairing limitation in mind. Treatment labels are permuted within site.
+if (!identical(attr(d_bray, "Labels"), as.character(meta_combined$SampleID))) {
+  stop("Combined pathway metadata do not match Bray-Curtis sample order.")
+}
+location_permutations <- permute::how(nperm = 999, blocks = meta_combined$Location)
+set.seed(1)
+perm_location_interaction <- vegan::adonis2(
+  d_bray ~ Compartment + Location * Inoculation,
+  data = meta_combined, permutations = location_permutations, by = "margin"
+)
+perm_location_tbl <- as.data.frame(perm_location_interaction) %>%
+  tibble::rownames_to_column("Term")
+perm_location_row <- perm_location_tbl %>%
+  dplyr::filter(Term %in% c("Location:Inoculation", "Inoculation:Location"))
+if (nrow(perm_location_row) != 1L) {
+  stop("Location x Inoculation term missing from pathway model: ",
+       paste(perm_location_tbl$Term, collapse = ", "))
+}
+readr::write_tsv(perm_location_row,
+  file.path(out_dir, "PERMANOVA_pathway_Location_by_Inoculation.tsv"))
+# Keep the original additive output separately; the global file identifies
+# which rows are drawn from distinct model specifications.
+readr::write_tsv(dplyr::bind_rows(
+  dplyr::mutate(perm_global_tbl, Model = "Five-location additive", .before = 1),
+  dplyr::mutate(perm_location_row,
+    Model = "Five-location interaction; restricted permutations within location",
+    .before = 1)
+), file.path(out_dir, "PERMANOVA_pathway_global.tsv"))
+message("Pathway Location x Inoculation interaction saved (five geographic locations).")
+
+# Direct root-versus-rhizosphere comparison on the Figure 1C pathway matrix.
+# Keep the six field environments as permutation blocks (Kowhai irrigated and
+# rainfed separate) even though the original global Location factor has five.
+comp_meta <- meta_combined %>%
+  mutate(Environment = factor(Environment))
+if (anyNA(comp_meta[, c("Environment", "Compartment", "Inoculation")]) ||
+    dplyr::n_distinct(comp_meta$Compartment) != 2L ||
+    dplyr::n_distinct(comp_meta$Inoculation) != 2L) {
+  stop("Compartment comparison requires both compartments and treatments with complete metadata.")
+}
+comp_counts <- comp_meta %>%
+  dplyr::count(Environment, Compartment, Inoculation, name = "N")
+readr::write_tsv(comp_counts, file.path(out_dir, "PERMANOVA_pathway_compartment_group_counts.tsv"))
+comp_permutations <- permute::how(
+  nperm = 999, blocks = comp_meta$Environment
+)
+set.seed(1)
+comp_main <- vegan::adonis2(
+  d_bray ~ Environment + Inoculation + Compartment,
+  data = comp_meta, permutations = comp_permutations, by = "margin"
+)
+set.seed(1)
+comp_interaction <- vegan::adonis2(
+  d_bray ~ Environment + Inoculation * Compartment,
+  data = comp_meta, permutations = comp_permutations, by = "margin"
+)
+comp_main_tbl <- as.data.frame(comp_main) %>%
+  tibble::rownames_to_column("Term")
+comp_interaction_tbl <- as.data.frame(comp_interaction) %>%
+  tibble::rownames_to_column("Term")
+readr::write_tsv(comp_main_tbl, file.path(out_dir, "PERMANOVA_pathway_compartment_additive.tsv"))
+readr::write_tsv(comp_interaction_tbl, file.path(out_dir, "PERMANOVA_pathway_compartment_interaction.tsv"))
+comp_summary <- dplyr::bind_rows(
+  comp_main_tbl %>% dplyr::filter(Term == "Compartment") %>%
+    dplyr::mutate(Comparison = "Root versus rhizosphere, adjusted for environment and inoculation"),
+  comp_interaction_tbl %>%
+    dplyr::filter(grepl("Inoculation", Term) & grepl("Compartment", Term) & grepl(":", Term)) %>%
+    dplyr::mutate(Comparison = "Difference in inoculation response between compartments")
+)
+if (nrow(comp_summary) != 2L) stop("Could not extract both compartment PERMANOVA terms.")
+comp_summary <- comp_summary %>%
+  dplyr::mutate(
+    N_total = nrow(comp_meta),
+    N_rhizosphere = sum(comp_meta$Compartment == "Rhizosphere"),
+    N_root = sum(comp_meta$Compartment == "Root"),
+    Permutations = 999L,
+    Permutation_blocks = "Six field environments (Kowhai Irrigated and Rainfed separate)",
+    Distance = "Bray-Curtis on untransformed HUMAnN pathway CPM"
+  ) %>%
+  dplyr::select(Comparison, dplyr::everything())
+readr::write_tsv(comp_summary, file.path(out_dir, "PERMANOVA_pathway_compartment_comparison.tsv"))
+
+# Check compartment dispersion before interpreting PERMANOVA separation.
+comp_disp <- vegan::betadisper(d_bray, comp_meta$Compartment)
+set.seed(1)
+comp_disp_test <- vegan::permutest(comp_disp, permutations = comp_permutations)
+comp_disp_tbl <- as.data.frame(comp_disp_test$tab) %>%
+  tibble::rownames_to_column("Term")
+readr::write_tsv(comp_disp_tbl, file.path(out_dir, "PERMDISP_pathway_compartment.tsv"))
 
 loc_r2 <- perm_global_tbl$R2[perm_global_tbl$Term == "Location"]
 loc_p  <- perm_global_tbl$`Pr(>F)`[perm_global_tbl$Term == "Location"]
@@ -280,19 +548,26 @@ ylab <- paste0("PCoA2 (", round(pcoa$values$Relative_eig[2] * 100, 1), "%)")
 # NATURE COMMUNICATIONS STYLE GLOBAL PLOT
 # ----------------------------
 p_natcom <- ggplot(scores, aes(PCoA1, PCoA2)) +
-  geom_point(aes(color = Location, shape = Compartment), size = 1.9, alpha = 0.92, stroke = 0.25) +
-  scale_color_manual(values = loc_cols, drop = FALSE) +
+  geom_point(aes(color = Environment, shape = Compartment), size = 1.9, alpha = 0.92, stroke = 0.25) +
+  scale_color_manual(values = fig1_environment_cols, drop = FALSE) +
   scale_shape_manual(values = c(Rhizosphere = 16, Root = 17), drop = FALSE) +
-  labs(x = xlab, y = ylab, color = "Location", shape = "Compartment") +
+  labs(x = xlab, y = ylab, color = "Field environment", shape = "Compartment") +
   guides(color = guide_legend(override.aes = list(size = 2.1), order = 1),
          shape = guide_legend(override.aes = list(size = 2.1), order = 2)) +
-  theme_natcom_pcoa(base_size = 7)
+  theme_natcom_pcoa(base_size = FIG1_PCOA_BASE_SIZE)
 
-# Compact panel for merging into Fig. 1
+# Compact, legend-free panel for merging into Fig. 1. Its dimensions exactly
+# match Figure 1B so the two ordination plotting regions remain the same size.
+saveRDS(
+  p_natcom,
+  file.path(out_dir, "Fig1C_Pathway_PCoA_NatCom_panel.rds")
+)
 ggsave(file.path(out_dir, "Fig1C_Pathway_PCoA_NatCom_panel.pdf"), p_natcom,
-       width = 85, height = 70, units = "mm", useDingbats = FALSE)
+       width = FIG1_PCOA_EXPORT_WIDTH_MM, height = FIG1_PCOA_EXPORT_HEIGHT_MM,
+       units = "mm", useDingbats = FALSE)
 ggsave(file.path(out_dir, "Fig1C_Pathway_PCoA_NatCom_panel.png"), p_natcom,
-       width = 85, height = 70, units = "mm", dpi = 600)
+       width = FIG1_PCOA_EXPORT_WIDTH_MM, height = FIG1_PCOA_EXPORT_HEIGHT_MM,
+       units = "mm", dpi = 600)
 
 # Wider inspection version
 ggsave(file.path(out_dir, "Fig1C_Pathway_PCoA_NatCom_wide.pdf"), p_natcom,
@@ -301,6 +576,7 @@ ggsave(file.path(out_dir, "Fig1C_Pathway_PCoA_NatCom_wide.png"), p_natcom,
        width = 110, height = 80, units = "mm", dpi = 600)
 
 message("Done. Saved Nature Communications-style pathway PCoA to: ", out_dir)
+message("Editable Figure 1C RDS: ", file.path(out_dir, "Fig1C_Pathway_PCoA_NatCom_panel.rds"))
 
 })
 })
@@ -313,7 +589,7 @@ run_section("Rhizosphere unstratified functional analysis (Figures 3A, 4A, S3)",
 local({
 # ============================================================
 # RHIZOSPHERE shotgun metagenomics (48) — HUMAnN4 UNSTRATIFIED
-# Focus: Inoculation (Panch vs Control), controlling for Location
+# Focus: Inoculation (Trichoderma vs Control), controlling for Location
 # Outputs:
 #   - PERMANOVA, PCoA, NMDS
 #   - ALDEx2 (global + within-Location)
@@ -321,7 +597,7 @@ local({
 #   - Consistency table + headline pathways
 #   - Heatmap A: top variable pathways
 #   - Heatmap B: inoculation-associated pathways
-#   - Section 11: Top pathways responding to Panch inoculation
+#   - Section 11: Top pathways responding to Trichoderma inoculation
 # UPDATED:
 #   - standardised Eyrewell_Forest spelling
 #   - Section 11 safely integrated without overwriting out_dir
@@ -388,7 +664,7 @@ loc_cols <- c(
 )
 
 dir_cols <- c(
-  "Higher in Panch"   = unname(okabe_ito["blue"]),
+  "Higher in Trichoderma"   = unname(okabe_ito["blue"]),
   "Higher in Control" = unname(okabe_ito["verm"])
 )
 
@@ -513,7 +789,7 @@ plot_volcano_splitlabels <- function(res_tbl, title, fname_base,
       Sig = (we.ep < p_cut) & (abs(effect) > effect_cut),
       Direction = case_when(
         Sig & effect > 0 ~ "Higher in Control",
-        Sig & effect < 0 ~ "Higher in Panch",
+        Sig & effect < 0 ~ "Higher in Trichoderma",
         TRUE ~ "Not highlighted"
       )
     )
@@ -522,10 +798,11 @@ plot_volcano_splitlabels <- function(res_tbl, title, fname_base,
     geom_point(aes(colour = Direction), size = 1.7, alpha = 0.75) +
     scale_colour_manual(
       values = c(
-        "Higher in Panch" = "#0072B2",
+        "Higher in Trichoderma" = "#0072B2",
         "Higher in Control" = "#D55E00",
         "Not highlighted" = "grey70"
-      )
+      ),
+      labels = trichoderma_direction_labels
     ) +
     geom_vline(xintercept = c(-effect_cut, effect_cut),
                linetype = 2, linewidth = 0.35) +
@@ -533,7 +810,7 @@ plot_volcano_splitlabels <- function(res_tbl, title, fname_base,
                linetype = 2, linewidth = 0.35) +
     theme_nature(base_size = 8) +
     labs(
-      title = title,
+      title = trichoderma_title(title),
       x = "Effect size (ALDEx2)",
       y = expression(-log[10](p)),
       colour = NULL
@@ -559,7 +836,7 @@ meta <- readr::read_tsv(meta_fp, show_col_types = FALSE) %>%
     ),
     Inoculation = case_when(
       str_to_lower(Inoculation) %in% c("control") ~ "Control",
-      str_to_lower(Inoculation) %in% c("panch")   ~ "Panch",
+      str_to_lower(Inoculation) %in% c("panch", "trichoderma")   ~ "Trichoderma",
       TRUE ~ Inoculation
     )
   )
@@ -583,9 +860,17 @@ meta2 <- meta %>%
   filter(SampleID %in% common_samples) %>%
   arrange(SampleID) %>%
   mutate(
-    Inoculation = factor(Inoculation, levels = c("Control","Panch")),
-    Water       = factor(Water)
+    Inoculation = factor(Inoculation, levels = c("Control","Trichoderma")),
+    Water = stringr::str_to_title(trimws(as.character(Water))),
+    Environment = factor(
+      ifelse(Location == "Kowhai", paste0("Kowhai_", Water), Location),
+      levels = FUNCTION_ENV_LEVELS
+    )
   )
+
+if (anyNA(meta2$Environment)) {
+  stop("Cannot assign all samples to six environments; check Kowhai Water metadata.")
+}
 
 bad_loc <- setdiff(sort(unique(meta2$Location)), names(loc_cols))
 if (length(bad_loc) > 0) {
@@ -618,14 +903,41 @@ write_tsv2(meta2, "Metadata_aligned.tsv")
 # ----------------------------
 # 6) Bray–Curtis + PERMANOVA + dispersion
 # ----------------------------
-meta2_perm <- meta2 %>% filter(!is.na(Location), !is.na(Inoculation))
+meta2_perm <- meta2 %>% filter(!is.na(Location), !is.na(Inoculation), !is.na(Environment))
+env_counts <- meta2_perm %>% dplyr::count(Environment, Inoculation, name = "n")
+write_tsv2(env_counts, "DIAGNOSTIC_Environment_by_Inoculation_counts.tsv")
+if (nrow(env_counts) != 2L * length(FUNCTION_ENV_LEVELS) || any(env_counts$n < 2L)) {
+  stop("Six environments with at least two samples per treatment are required for site-specific ALDEx2 volcanoes.")
+}
 X_cpm_perm <- X_cpm[meta2_perm$SampleID, , drop = FALSE]
 
 set.seed(1)
 d_bray <- vegan::vegdist(X_cpm_perm, method = "bray")
 
+# Five-location global model: Kowhai irrigated and rainfed share one Location.
+# Field_environment is descriptive and is not a sixth level in PERMANOVA.
+field_environment <- ifelse(
+  as.character(meta2_perm$Location) == "Kowhai",
+  paste("Kowhai", as.character(meta2_perm$Water)),
+  as.character(meta2_perm$Location)
+)
+model_scope <- tibble::tibble(
+  Model = "Pathway PERMANOVA: Location + Inoculation",
+  Location_levels_in_model = dplyr::n_distinct(meta2_perm$Location),
+  Field_environments_in_dataset = dplyr::n_distinct(field_environment),
+  Definition = paste(
+    "Five locations in PERMANOVA; Kowhai water regimes pooled.",
+    "Within-environment PERMANOVA and ALDEx2 analyse Kowhai Irrigated and Rainfed separately."
+  )
+)
+write_tsv2(model_scope, "PERMANOVA_model_scope.tsv")
+if (model_scope$Location_levels_in_model != 5 ||
+    model_scope$Field_environments_in_dataset != 6) {
+  warning("Expected five locations and six field environments; check Water metadata.")
+}
+
 # ----------------------------
-# 6A) Global PERMANOVA
+# 6A) Global five-location PERMANOVA
 # ----------------------------
 perm_main <- vegan::adonis2(
   d_bray ~ Location + Inoculation,
@@ -643,13 +955,48 @@ write_tsv2(
 )
 
 # ----------------------------
-# 6B) Inoculation effect with permutations constrained within Location
+# 6A2) Does the inoculation response vary among six field environments?
+# ----------------------------
+# This interaction compares treatment-associated shifts between environments
+# within this compartment. It is distinct from six separate treatment tests.
+# Treatment labels are permuted within environment. The metadata currently
+# lack a plot/block ID, so the test does not represent paired plot blocking.
+if (!identical(attr(d_bray, "Labels"), as.character(meta2_perm$SampleID))) {
+  stop("PERMANOVA metadata order does not match pathway distance matrix.")
+}
+env_permutations <- permute::how(nperm = 999, blocks = meta2_perm$Environment)
+set.seed(1)
+perm_env_interaction <- vegan::adonis2(
+  d_bray ~ Environment * Inoculation,
+  data = meta2_perm, permutations = env_permutations, by = "margin"
+)
+perm_env_interaction_df <- as.data.frame(perm_env_interaction) %>%
+  tibble::rownames_to_column("Term")
+perm_env_interaction_row <- perm_env_interaction_df %>%
+  dplyr::filter(Term %in% c("Environment:Inoculation", "Inoculation:Environment"))
+if (nrow(perm_env_interaction_row) != 1L) {
+  stop("Could not extract pathway Environment x Inoculation interaction: ",
+       paste(perm_env_interaction_df$Term, collapse = ", "))
+}
+perm_env_interaction_row <- perm_env_interaction_row %>%
+  dplyr::mutate(
+    N = nrow(meta2_perm), Field_environments = length(FUNCTION_ENV_LEVELS),
+    Permutations = 999L,
+    Permutation_blocks = "Environment (six fields; Kowhai split)",
+    .before = 1
+  )
+write_tsv2(perm_env_interaction_row,
+           "PERMANOVA_Environment_by_Inoculation.tsv")
+message("Functional Environment x Inoculation PERMANOVA saved in ", tab_dir)
+
+# ----------------------------
+# 6B) Inoculation effect with permutations constrained within Environment
 # ----------------------------
 perm_inoc_strata <- vegan::adonis2(
   d_bray ~ Inoculation,
   data = meta2_perm,
   permutations = 999,
-  strata = meta2_perm$Location
+  strata = meta2_perm$Environment
 )
 
 perm_inoc_strata_tbl <- as.data.frame(perm_inoc_strata) %>%
@@ -657,97 +1004,50 @@ perm_inoc_strata_tbl <- as.data.frame(perm_inoc_strata) %>%
 
 write_tsv2(
   perm_inoc_strata_tbl,
-  "PERMANOVA_Inoculation_stratifiedByLocation.tsv"
+  "PERMANOVA_Inoculation_stratifiedByEnvironment.tsv"
 )
+unlink(file.path(tab_dir, "PERMANOVA_Inoculation_stratifiedByLocation.tsv"))
 
+# 6C) Within-environment PERMANOVA: six separate field environments
 # ----------------------------
-# 6C) Site-specific PERMANOVA: Inoculation within each Location
-# ----------------------------
-site_levels_present <- sort(unique(as.character(meta2_perm$Location)))
-
-site_counts <- meta2_perm %>%
-  dplyr::count(Location, Inoculation, name = "n")
-write_tsv2(site_counts, "DIAGNOSTIC_Site_by_Inoculation_counts.tsv")
-
-perm_by_site_list <- lapply(site_levels_present, function(loc) {
-  
-  meta_loc <- meta2_perm %>%
-    dplyr::filter(as.character(Location) == loc) %>%
+# The five-location global model above is retained. Field-specific treatment
+# tests below split Kowhai into Irrigated and Rainfed (four samples per group).
+perm_by_environment <- purrr::map_dfr(FUNCTION_ENV_LEVELS, function(env) {
+  meta_env <- meta2_perm %>%
+    dplyr::filter(as.character(Environment) == env) %>%
     droplevels()
-  
-  message("Running within-site PERMANOVA for: ", loc)
-  message("  N = ", nrow(meta_loc))
-  print(table(meta_loc$Inoculation, useNA = "ifany"))
-  
-  if (nrow(meta_loc) < 4) {
-    message("  Skipped: fewer than 4 samples")
-    return(NULL)
+  group_counts <- table(meta_env$Inoculation)
+  if (nrow(meta_env) < 4L || length(group_counts) != 2L ||
+      any(group_counts < 2L)) {
+    stop("Expected both inoculation groups in field environment ", env)
   }
-  
-  inoc_present <- unique(as.character(meta_loc$Inoculation))
-  inoc_present <- inoc_present[!is.na(inoc_present)]
-  if (length(inoc_present) < 2) {
-    message("  Skipped: only one inoculation group present")
-    return(NULL)
-  }
-  
-  X_loc <- X_cpm_perm[meta_loc$SampleID, , drop = FALSE]
-  d_loc <- vegan::vegdist(X_loc, method = "bray")
-  
-  perm_loc <- vegan::adonis2(
-    d_loc ~ Inoculation,
-    data = meta_loc,
-    permutations = 999
+  X_env <- X_cpm_perm[meta_env$SampleID, , drop = FALSE]
+  d_env <- vegan::vegdist(X_env, method = "bray")
+  fit <- vegan::adonis2(
+    d_env ~ Inoculation, data = meta_env, permutations = 999
   )
-  
-  perm_loc_df <- as.data.frame(perm_loc) %>%
-    tibble::rownames_to_column("Term")
-  
-  readr::write_tsv(
-    perm_loc_df,
-    file.path(tab_dir, paste0("DIAGNOSTIC_PERMANOVA_", loc, ".tsv"))
-  )
-  
-  perm_loc_df <- perm_loc_df %>%
-    dplyr::filter(!Term %in% c("Residual", "Total")) %>%
-    dplyr::mutate(
-      Term = "Inoculation",
-      Location = loc,
-      N = nrow(meta_loc)
-    ) %>%
-    dplyr::select(Location, N, Term, Df, SumOfSqs, R2, F, `Pr(>F)`)
-  
-  if (nrow(perm_loc_df) == 0) {
-    message("  Skipped: no model row found in adonis2 output")
-    return(NULL)
+  fit_df <- as.data.frame(fit)
+  if (nrow(fit_df) < 1L ||
+      !rownames(fit_df)[1] %in% c("Model", "Inoculation")) {
+    stop("Unexpected adonis2 output in ", env, ": ",
+         paste(rownames(fit_df), collapse = ", "))
   }
-  
-  perm_loc_df
+  fit_df[1, , drop = FALSE] %>%
+    dplyr::mutate(Environment = env, N = nrow(meta_env),
+                  Term = "Inoculation", .before = 1) %>%
+    dplyr::select(Environment, N, Term, Df, SumOfSqs, R2, F, `Pr(>F)`)
 })
-
-perm_by_site <- dplyr::bind_rows(perm_by_site_list)
-
-if (nrow(perm_by_site) == 0) {
-  warning("No within-site PERMANOVA results were generated. Check diagnostic files.")
-  perm_by_site <- tibble::tibble(
-    Location = character(),
-    N = integer(),
-    Term = character(),
-    Df = numeric(),
-    SumOfSqs = numeric(),
-    R2 = numeric(),
-    F = numeric(),
-    `Pr(>F)` = numeric()
-  )
+if (nrow(perm_by_environment) != 6L ||
+    !setequal(perm_by_environment$Environment, FUNCTION_ENV_LEVELS)) {
+  stop("Expected one inoculation PERMANOVA row per six field environments.")
 }
-
-write_tsv2(
-  perm_by_site,
-  "PERMANOVA_withinLocation_Inoculation.tsv"
-)
+write_tsv2(perm_by_environment, "PERMANOVA_withinEnvironment_Inoculation.tsv")
+# Remove pooled five-location outputs produced by older script versions.
+unlink(file.path(tab_dir, "PERMANOVA_withinLocation_Inoculation.tsv"))
+message("Functional within-environment PERMANOVA: six separate field results saved.")
 
 # ----------------------------
-# 6D) Combined PERMANOVA summary table (global + site-specific)
+# 6D) Combined PERMANOVA summary table (global + six environments)
 # ----------------------------
 perm_main_combined <- perm_main_tbl %>%
   filter(Term %in% c("Location", "Inoculation")) %>%
@@ -758,22 +1058,26 @@ perm_main_combined <- perm_main_tbl %>%
   ) %>%
   dplyr::select(Model, Location_label, N, Term, Df, SumOfSqs, R2, F, `Pr(>F)`)
 
-perm_by_site_combined <- perm_by_site %>%
-  mutate(
-    Model = "Within-site",
-    Location_label = Location
+perm_by_environment_combined <- perm_by_environment %>%
+  dplyr::mutate(
+    Model = "Within-environment",
+    Location_label = pretty_environment_label(Environment)
   ) %>%
   dplyr::select(Model, Location_label, N, Term, Df, SumOfSqs, R2, F, `Pr(>F)`)
 
-perm_combined <- bind_rows(
+perm_combined <- dplyr::bind_rows(
   perm_main_combined,
-  perm_by_site_combined
+  perm_env_interaction_row %>%
+    dplyr::mutate(Model = "Environment interaction", Location_label = "Six environments") %>%
+    dplyr::select(Model, Location_label, N, Term, Df, SumOfSqs, R2, F, `Pr(>F)`),
+  perm_by_environment_combined
 )
 
 write_tsv2(
   perm_combined,
-  "TABLE_PERMANOVA_Function_Global_and_WithinSite.tsv"
+  "TABLE_PERMANOVA_Function_Global_and_WithinEnvironment.tsv"
 )
+unlink(file.path(tab_dir, "TABLE_PERMANOVA_Function_Global_and_WithinSite.tsv"))
 
 # ----------------------------
 # 6E) Dispersion test
@@ -796,10 +1100,15 @@ scores_pcoa <- as.data.frame(pcoa$vectors[, 1:2]) %>%
 write_tsv2(scores_pcoa, "PCoA_scores.tsv")
 
 p_pcoa <- ggplot(scores_pcoa, aes(PCoA1, PCoA2)) +
-  geom_point(aes(color = Location, shape = Inoculation),
+  geom_point(aes(color = Environment, shape = Inoculation),
              size = 2.2, alpha = 0.9, stroke = 0.35) +
-  scale_color_manual(values = loc_cols, drop = FALSE) +
-  scale_shape_manual(values = c(Control = 16, Panch = 17), drop = FALSE) +
+  scale_color_manual(
+    values = functional_environment_cols,
+    labels = pretty_environment_label,
+    drop = FALSE
+  ) +
+  scale_shape_manual(values = c(Control = 16, Trichoderma = 17),
+                     labels = trichoderma_inoculation_labels, drop = FALSE) +
   theme_nature(base_size = 8) +
   labs(
     title = "Rhizosphere PCoA (Bray–Curtis)",
@@ -818,28 +1127,33 @@ dir.create(NATCOM_DIR, recursive = TRUE, showWarnings = FALSE)
 p_fig3_rhiz_func <- p_pcoa +
   labs(
     title = "Rhizosphere",
-    colour = "Location",
+    colour = "Field environment",
     shape = "Inoculation"
   ) +
-  theme_nature(base_size = 7) +
+  theme_nature(base_size = FIG3_PCOA_BASE_SIZE) +
   theme(
     legend.position = "none",
-    plot.title = element_text(face = "bold", hjust = 0, size = 8),
-    axis.title = element_text(face = "bold", size = 8),
-    axis.text = element_text(colour = "black", size = 7),
-    aspect.ratio = 1,
+    plot.title = element_text(face = "bold", hjust = 0, size = FIG3_PCOA_TITLE_SIZE),
+    axis.title = element_text(face = "bold", size = FIG3_PCOA_AXIS_TITLE_SIZE),
+    axis.text = element_text(colour = "black", size = FIG3_PCOA_AXIS_TEXT_SIZE),
+    aspect.ratio = FIG3_PCOA_ASPECT_RATIO,
     plot.margin = margin(4, 4, 4, 4)
   ) +
   guides(
-    colour = guide_legend(override.aes = list(size = 2.4), order = 1),
-    shape  = guide_legend(override.aes = list(size = 2.4), order = 2)
+    colour = guide_legend(override.aes = list(size = 3.2), order = 1),
+    shape  = guide_legend(override.aes = list(size = 3.2), order = 2)
   )
+
+saveRDS(
+  p_fig3_rhiz_func,
+  file.path(NATCOM_DIR, "p_fig3_rhiz_func.rds")
+)
 
 ggsave(
   file.path(NATCOM_DIR, "Fig3A_Rhizosphere_Function_PCoA_NatCom_panel.pdf"),
   p_fig3_rhiz_func,
-  width = 105,
-  height = 75,
+  width = 95,
+  height = FIG3_HEIGHT_MM,
   units = "mm",
   useDingbats = FALSE
 )
@@ -847,8 +1161,8 @@ ggsave(
 ggsave(
   file.path(NATCOM_DIR, "Fig3A_Rhizosphere_Function_PCoA_NatCom_panel.png"),
   p_fig3_rhiz_func,
-  width = 105,
-  height = 75,
+  width = 95,
+  height = FIG3_HEIGHT_MM,
   units = "mm",
   dpi = 600
 )
@@ -865,7 +1179,8 @@ p_nmds <- ggplot(scores_nmds, aes(NMDS1, NMDS2)) +
   geom_point(aes(color = Location, shape = Inoculation),
              size = 2.2, alpha = 0.9, stroke = 0.35) +
   scale_color_manual(values = loc_cols, drop = FALSE) +
-  scale_shape_manual(values = c(Control = 16, Panch = 17), drop = FALSE) +
+  scale_shape_manual(values = c(Control = 16, Trichoderma = 17),
+                     labels = trichoderma_inoculation_labels, drop = FALSE) +
   theme_nature(base_size = 8) +
   labs(title = paste0("Rhizosphere NMDS (stress=", round(nmds$stress, 3), ")"))
 save_fig(p_nmds, "Fig_NMDS_Location_Inoculation_Nature", w = 6.5, h = 4.8)
@@ -916,7 +1231,7 @@ n_control <- sum(meta2_perm$Inoculation == "Control", na.rm = TRUE)
 
 save_pheatmap(
   hmA_blk, annoA_blk,
-  name = "Fig_Heatmap_TopVariablePathways_CPM_BLOCKED_ControlVsPanch",
+  name = "Fig_Heatmap_TopVariablePathways_CPM_BLOCKED_ControlVsTrichoderma",
   main = paste0("Top ", N_var, " variable pathways (z-scored CPM) — blocked by inoculation"),
   w_pdf = 16, h_pdf = 7.5,
   cluster_cols = FALSE, cluster_rows = TRUE,
@@ -974,7 +1289,7 @@ write_tsv2(aldex_global, "ALDEx2_Inoculation_Global.tsv")
 
 plot_volcano_splitlabels(
   aldex_global,
-  "Differential pathways: Panch vs Control (Global; RAW)",
+  "Differential pathways: Trichoderma vs Control (Global; RAW)",
   "Fig_ALDEx2_Volcano_Inoculation_Global_Nature",
   p_cut = 0.10, effect_cut = 0.25,
   label_n_right = 10, label_n_left = 6
@@ -995,28 +1310,58 @@ aldex_by_loc <- purrr::map_dfr(levels(meta2_perm$Location), function(loc) {
 })
 write_tsv2(aldex_by_loc, "ALDEx2_Inoculation_byLocation.tsv")
 
+# Separate field-environment contrasts for Supplementary Figures S3/S4.
+# Existing five-location results and cross-location pathway screens stay pooled.
+aldex_by_env <- purrr::map_dfr(FUNCTION_ENV_LEVELS, function(env) {
+  idx <- as.character(meta2_perm$Environment) == env
+  g <- droplevels(meta2_perm$Inoculation[idx])
+  if (nlevels(g) != 2L || any(table(g) < 2L)) {
+    stop("Insufficient treatment replicates for environment: ", env)
+  }
+  run_aldex2_one(
+    X_sub = X_raw_int[idx, , drop = FALSE],
+    group = g,
+    label = paste0("Inoculation_", env),
+    mc_samples = 128,
+    denom = "all"
+  ) %>% mutate(Environment = env, Location = as.character(meta2_perm$Location[which(idx)[1]]))
+})
+write_tsv2(aldex_by_env, "ALDEx2_Inoculation_byEnvironment.tsv")
+
 for (loc in levels(meta2_perm$Location)) {
   sub <- aldex_by_loc %>% filter(Location == loc)
   if (nrow(sub) == 0) next
   
   plot_volcano_splitlabels(
     sub,
-    paste0("Differential pathways: Panch vs Control — ", loc, " (RAW)"),
+    paste0("Differential pathways: Trichoderma vs Control — ", loc, " (RAW)"),
     paste0("Fig_ALDEx2_Volcano_Inoculation_", loc, "_Nature"),
     p_cut = 0.10, effect_cut = 0.25,
     label_n_right = 10, label_n_left = 6
   )
 }
 
-support_ep  <- 0.10
-support_eff <- 0.25
+# Screening for cross-location consistency is nominal, not BH significant.
+MATRIX_EFFECT_MIN <- 0.20  # Rhizosphere site matrix only
+support_ep  <- PATHWAY_NOMINAL_P
+support_eff <- PATHWAY_EFFECT_MIN
+write_tsv2(tibble::tibble(
+  Selection = c("Exploratory pathway screen", "BH-adjusted pathway evidence"),
+  P_column = c("we.ep", "we.eBH"),
+  P_cutoff = c(PATHWAY_NOMINAL_P, PATHWAY_ADJUSTED_Q),
+  Minimum_absolute_effect = PATHWAY_EFFECT_MIN,
+  Matrix_absolute_effect = MATRIX_EFFECT_MIN,
+  Used_for_headline_selection = c(TRUE, FALSE)
+), "TABLE_PathwayThresholds.tsv")
 
 consistency <- aldex_by_loc %>%
   mutate(
     supported = (we.ep < support_ep) & (abs(effect) > support_eff),
+    adjusted_supported = (we.eBH < PATHWAY_ADJUSTED_Q) &
+      (abs(effect) > support_eff),
     dir = case_when(
       effect > 0 ~ "Higher_in_Control",
-      effect < 0 ~ "Higher_in_Panch",
+      effect < 0 ~ "Higher_in_Trichoderma",
       TRUE ~ "Zero"
     )
   ) %>%
@@ -1024,20 +1369,27 @@ consistency <- aldex_by_loc %>%
   summarise(
     n_locations_tested    = n_distinct(Location),
     n_locations_supported = sum(supported, na.rm = TRUE),
+    n_locations_adjusted = sum(adjusted_supported, na.rm = TRUE),
     dir_supported         = paste(sort(unique(dir[supported])), collapse = ";"),
     median_effect         = median(effect, na.rm = TRUE),
     min_weep              = min(we.ep, na.rm = TRUE),
+    min_weebh             = min(we.eBH, na.rm = TRUE),
     .groups = "drop"
   ) %>%
   arrange(desc(n_locations_supported), min_weep, desc(abs(median_effect)))
 
 write_tsv2(consistency, "TABLE_PathwayConsistency_acrossLocations.tsv")
+write_tsv2(
+  consistency %>% filter(n_locations_adjusted >= 1),
+  "TABLE_PathwayConsistency_BHAdjusted.tsv"
+)
 
 headline <- consistency %>%
   filter(n_locations_supported >= 2) %>%
-  slice_head(n = 40)
+  slice_head(n = 40) %>%
+  mutate(Selection_basis = "Exploratory: we.ep < 0.10 and |effect| > 0.25 in at least two locations; not BH adjusted")
 write_tsv2(headline, "TABLE_HeadlinePathways_sigIn2plusLocations.tsv")
-message("Headline pathways (>=2 locations supported): ", nrow(headline))
+message("Exploratory nominal-screen headline pathways (>=2 locations; not BH adjusted): ", nrow(headline))
 
 headline1 <- tibble::tibble(Pathway = character())
 if (nrow(headline) == 0) {
@@ -1073,7 +1425,7 @@ if (length(hm_paths) >= 10) {
   
   save_pheatmap(
     hmB_blk, annoB_blk,
-    name = "Fig_Heatmap_HeadlineInoculationPathways_CPM_BLOCKED_ControlVsPanch",
+    name = "Fig_Heatmap_HeadlineInoculationPathways_CPM_BLOCKED_ControlVsTrichoderma",
     main = "Inoculation-associated pathways (z-scored CPM)",
     w_pdf = 16, h_pdf = 7.0,
     cluster_cols = FALSE, cluster_rows = TRUE,
@@ -1094,75 +1446,77 @@ if (length(hm_paths) >= 10) {
 }
 
 # =========================
-# 11) RHIZOSPHERE top pathways responding to Panch inoculation
+# 11) RHIZOSPHERE top pathways responding to Trichoderma inoculation
 #     Colour-fixed version, matched to root plotting style
 # =========================
-p_cut_matrix   <- 0.10
-eff_cut_matrix <- 0.20
-min_sites_supported <- 1
+# Exploratory rhizosphere matrix: nominal P and a 0.20 effect cutoff.
+# This cutoff is more permissive than the 0.25 headline screen.
+p_cut_matrix   <- PATHWAY_NOMINAL_P
+eff_cut_matrix <- MATRIX_EFFECT_MIN
+min_environments_supported <- 1
 top_n_matrix <- 15
-focus_matrix <- "Both"   # "Panch" or "Both"
+focus_matrix <- "Both"   # "Trichoderma" or "Both"
 
-aldex_plot_fp <- file.path(tab_dir, "ALDEx2_Inoculation_byLocation.tsv")
+aldex_plot_fp <- file.path(tab_dir, "ALDEx2_Inoculation_byEnvironment.tsv")
 if (file.exists(aldex_plot_fp)) {
   
   df_matrix <- readr::read_tsv(aldex_plot_fp, show_col_types = FALSE) %>%
     mutate(
       supported = (we.ep < p_cut_matrix) & (abs(effect) > eff_cut_matrix),
       direction = case_when(
-        effect < 0 ~ "Higher in Panch",
+        effect < 0 ~ "Higher in Trichoderma",
         effect > 0 ~ "Higher in Control",
         TRUE ~ "No change"
       ),
-      direction = factor(direction, levels = c("Higher in Panch", "Higher in Control", "No change"))
+      direction = factor(direction, levels = c("Higher in Trichoderma", "Higher in Control", "No change"))
     )
   
   rank_tbl <- df_matrix %>%
     filter(direction != "No change") %>%
     group_by(Pathway) %>%
     summarise(
-      n_sites_supported = sum(supported, na.rm = TRUE),
+      n_environments_supported = sum(supported, na.rm = TRUE),
       median_abs_effect = median(abs(effect), na.rm = TRUE),
       min_p = min(we.ep, na.rm = TRUE),
-      n_panch_supported = sum(supported & direction == "Higher in Panch", na.rm = TRUE),
+      n_trichoderma_supported = sum(supported & direction == "Higher in Trichoderma", na.rm = TRUE),
       .groups = "drop"
     ) %>%
-    filter(n_sites_supported >= min_sites_supported)
+    filter(n_environments_supported >= min_environments_supported)
   
-  if (focus_matrix == "Panch") {
-    rank_tbl <- rank_tbl %>% filter(n_panch_supported >= 1)
+  if (focus_matrix == "Trichoderma") {
+    rank_tbl <- rank_tbl %>% filter(n_trichoderma_supported >= 1)
   }
   
   rank_tbl <- rank_tbl %>%
-    arrange(desc(n_sites_supported), min_p, desc(median_abs_effect)) %>%
+    arrange(desc(n_environments_supported), min_p, desc(median_abs_effect)) %>%
     slice_head(n = top_n_matrix)
   
   top_paths_matrix <- rank_tbl$Pathway
   
   if (length(top_paths_matrix) > 0) {
-    loc_levels <- names(loc_cols)
+    env_levels <- FUNCTION_ENV_LEVELS
     
     plot_df_matrix <- df_matrix %>%
       filter(Pathway %in% top_paths_matrix) %>%
       mutate(
         Pathway  = factor(Pathway, levels = rev(top_paths_matrix)),
-        Location = factor(Location, levels = loc_levels),
+        Environment = factor(Environment, levels = env_levels),
         alpha_val = ifelse(supported, 0.95, 0.20),
         color_key = case_when(
-          direction == "Higher in Panch" ~ "Higher in Panch",
+          direction == "Higher in Trichoderma" ~ "Higher in Trichoderma",
           direction == "Higher in Control" ~ "Higher in Control",
           TRUE ~ "No change"
         ),
-        color_key = factor(color_key, levels = c("Higher in Panch", "Higher in Control", "No change"))
+        color_key = factor(color_key, levels = c("Higher in Trichoderma", "Higher in Control", "No change"))
       )
     
     title_txt <- paste0(
       "Top ", top_n_matrix,
-      ifelse(focus_matrix == "Panch", " rhizosphere pathways with Panch signal", " rhizosphere pathways responding"),
-      " supported across \u2265", min_sites_supported, " site"
+      ifelse(focus_matrix == "Trichoderma", " rhizosphere pathways with Trichoderma signal", " rhizosphere pathways responding"),
+      " supported across \u2265", min_environments_supported, " environment"
     )
     
-    p_matrix <- ggplot(plot_df_matrix, aes(x = Location, y = Pathway)) +
+    p_matrix <- ggplot(plot_df_matrix, aes(x = Environment, y = Pathway)) +
       geom_point(
         aes(
           size  = abs(effect),
@@ -1172,21 +1526,25 @@ if (file.exists(aldex_plot_fp)) {
         ),
         stroke = 0.25
       ) +
+      scale_x_discrete(labels = fig4_environment_axis_label, drop = FALSE) +
       scale_alpha_identity(guide = "none") +
       scale_size_continuous(name = "Effect size |effect|", range = c(1.5, 8)) +
       scale_shape_manual(
         name = "Direction",
-        values = c("Higher in Panch" = 16, "Higher in Control" = 17, "No change" = 1),
-        drop = FALSE
+        values = c("Higher in Trichoderma" = 16, "Higher in Control" = 17, "No change" = 1),
+        drop = FALSE,
+        guide = "none"
       ) +
       scale_color_manual(
         name = "Direction",
         values = c(dir_cols, "No change" = "grey80"),
-        breaks = c("Higher in Panch", "Higher in Control"),
-        guide = guide_legend(override.aes = list(alpha = 1, size = 3))
+        breaks = c("Higher in Trichoderma", "Higher in Control"),
+        labels = trichoderma_direction_labels,
+        guide = guide_legend(override.aes = list(alpha = 1, size = 3,
+                                                 shape = c(16, 17)))
       ) +
-      labs(title = title_txt, x = NULL, y = NULL) +
-      theme_nature_matrix(base_size = 9) +
+      labs(title = trichoderma_title(title_txt), x = NULL, y = NULL) +
+      theme_nature_matrix(base_size = FIG4_SOURCE_BASE_SIZE) +
       theme(
         panel.grid.major.x = element_line(color = "grey92", linewidth = 0.35),
         panel.grid.major.y = element_blank()
@@ -1226,6 +1584,8 @@ pretty_location <- function(x) {
   dplyr::recode(
     as.character(x),
     "Eyrewell_Forest" = "Eyrewell Forest",
+    "Kowhai_Irrigated" = "Kowhai (Irrigated)",
+    "Kowhai_Rainfed" = "Kowhai (Rainfed)",
     "West_Coast" = "West Coast",
     .default = as.character(x)
   )
@@ -1245,7 +1605,7 @@ plot_volcano_panel <- function(res_tbl, panel_title,
       Sig = (we.ep < p_cut) & (abs(effect) > effect_cut),
       Direction = case_when(
         Sig & effect > 0 ~ "Higher in Control",
-        Sig & effect < 0 ~ "Higher in Panch",
+        Sig & effect < 0 ~ "Higher in Trichoderma",
         TRUE ~ "Not highlighted"
       )
     )
@@ -1268,11 +1628,12 @@ plot_volcano_panel <- function(res_tbl, panel_title,
     ) +
     scale_colour_manual(
       values = c(
-        "Higher in Panch" = "#0072B2",
+        "Higher in Trichoderma" = "#0072B2",
         "Higher in Control" = "#D55E00",
         "Not highlighted" = "grey70"
       ),
-      breaks = c("Higher in Panch", "Higher in Control", "Not highlighted")
+      breaks = c("Higher in Trichoderma", "Higher in Control", "Not highlighted"),
+      labels = trichoderma_direction_labels
     ) +
     geom_vline(
       xintercept = c(-effect_cut, effect_cut),
@@ -1304,25 +1665,25 @@ plot_volcano_panel <- function(res_tbl, panel_title,
 # Automatically set common y-axis limit from all site-level results
 common_ylim <- c(
   0,
-  ceiling(max(-log10(aldex_by_loc$we.ep + 1e-300), na.rm = TRUE))
+  ceiling(max(-log10(aldex_by_env$we.ep + 1e-300), na.rm = TRUE))
 )
 
 # Optional: restrict very tall p-value axis if labels become compressed
 common_ylim[2] <- min(common_ylim[2], 4)
 
 common_xlim <- c(
-  floor(min(aldex_by_loc$effect, na.rm = TRUE)),
-  ceiling(max(aldex_by_loc$effect, na.rm = TRUE))
+  floor(min(aldex_by_env$effect, na.rm = TRUE)),
+  ceiling(max(aldex_by_env$effect, na.rm = TRUE))
 )
 
 # Optional: make all panels visually comparable
 common_xlim[1] <- max(common_xlim[1], -4)
 common_xlim[2] <- min(common_xlim[2], 4)
 
-site_order <- c("Eyrewell_Forest", "Kowhai", "LU_H8", "Rolleston", "West_Coast")
+site_order <- FUNCTION_ENV_LEVELS
 
 volcano_panels <- lapply(site_order, function(loc) {
-  sub <- aldex_by_loc %>% filter(Location == loc)
+  sub <- aldex_by_env %>% filter(Environment == loc)
   if (nrow(sub) == 0) return(NULL)
   
   plot_volcano_panel(
@@ -1403,7 +1764,7 @@ run_section("Root unstratified functional analysis (Figures 3B, 4B, S4)", {
 local({
 # ============================================================
 # ROOT shotgun metagenomics (48) — HUMAnN4 UNSTRATIFIED
-# Focus: Inoculation (Panch vs Control), controlling for Location
+# Focus: Inoculation (Trichoderma vs Control), controlling for Location
 # Outputs:
 #   - PERMANOVA, PCoA, NMDS
 #   - ALDEx2 (global + within-Location)
@@ -1411,7 +1772,7 @@ local({
 #   - Consistency table + headline pathways
 #   - Heatmap A: top variable pathways
 #   - Heatmap B: inoculation-associated pathways
-#   - Section 11: Top pathways responding to Panch inoculation
+#   - Section 11: Top pathways responding to Trichoderma inoculation
 # UPDATED:
 #   - standardised Eyrewell_Forest spelling
 #   - Section 11 safely integrated without overwriting out_dir
@@ -1479,7 +1840,7 @@ loc_cols <- c(
 )
 
 dir_cols <- c(
-  "Higher in Panch"   = unname(okabe_ito["blue"]),
+  "Higher in Trichoderma"   = unname(okabe_ito["blue"]),
   "Higher in Control" = unname(okabe_ito["verm"])
 )
 
@@ -1604,7 +1965,7 @@ plot_volcano_splitlabels <- function(res_tbl, title, fname_base,
       Sig = (we.ep < p_cut) & (abs(effect) > effect_cut),
       Direction = case_when(
         Sig & effect > 0 ~ "Higher in Control",
-        Sig & effect < 0 ~ "Higher in Panch",
+        Sig & effect < 0 ~ "Higher in Trichoderma",
         TRUE ~ "Not highlighted"
       )
     )
@@ -1613,10 +1974,11 @@ plot_volcano_splitlabels <- function(res_tbl, title, fname_base,
     geom_point(aes(colour = Direction), size = 1.7, alpha = 0.75) +
     scale_colour_manual(
       values = c(
-        "Higher in Panch" = "#0072B2",
+        "Higher in Trichoderma" = "#0072B2",
         "Higher in Control" = "#D55E00",
         "Not highlighted" = "grey70"
-      )
+      ),
+      labels = trichoderma_direction_labels
     ) +
     geom_vline(xintercept = c(-effect_cut, effect_cut),
                linetype = 2, linewidth = 0.35) +
@@ -1624,7 +1986,7 @@ plot_volcano_splitlabels <- function(res_tbl, title, fname_base,
                linetype = 2, linewidth = 0.35) +
     theme_nature(base_size = 8) +
     labs(
-      title = title,
+      title = trichoderma_title(title),
       x = "Effect size (ALDEx2)",
       y = expression(-log[10](p)),
       colour = NULL
@@ -1640,7 +2002,8 @@ meta <- readr::read_tsv(meta_fp, show_col_types = FALSE) %>%
   mutate(
     SampleID    = trimws(as.character(SampleID)),
     Location    = trimws(as.character(Location)),
-    Inoculation = trimws(as.character(Inoculation))
+    Inoculation = trimws(as.character(Inoculation)),
+    Water       = trimws(as.character(Water))
   ) %>%
   mutate(
     Location = case_when(
@@ -1649,12 +2012,12 @@ meta <- readr::read_tsv(meta_fp, show_col_types = FALSE) %>%
     ),
     Inoculation = case_when(
       str_to_lower(Inoculation) %in% c("control") ~ "Control",
-      str_to_lower(Inoculation) %in% c("panch")   ~ "Panch",
+      str_to_lower(Inoculation) %in% c("panch", "trichoderma")   ~ "Trichoderma",
       TRUE ~ Inoculation
     )
   )
 
-stopifnot(all(c("SampleID","Location","Inoculation") %in% names(meta)))
+stopifnot(all(c("SampleID","Location","Inoculation","Water") %in% names(meta)))
 if (anyDuplicated(meta$SampleID)) stop("Duplicate SampleID in metadata.")
 
 # ----------------------------
@@ -1673,8 +2036,17 @@ meta2 <- meta %>%
   filter(SampleID %in% common_samples) %>%
   arrange(SampleID) %>%
   mutate(
-    Inoculation = factor(Inoculation, levels = c("Control","Panch"))
+    Inoculation = factor(Inoculation, levels = c("Control","Trichoderma")),
+    Water = stringr::str_to_title(trimws(as.character(Water))),
+    Environment = factor(
+      ifelse(Location == "Kowhai", paste0("Kowhai_", Water), Location),
+      levels = FUNCTION_ENV_LEVELS
+    )
   )
+
+if (anyNA(meta2$Environment)) {
+  stop("Cannot assign all samples to six environments; check Kowhai Water metadata.")
+}
 
 bad_loc <- setdiff(sort(unique(meta2$Location)), names(loc_cols))
 if (length(bad_loc) > 0) {
@@ -1706,14 +2078,41 @@ write_tsv2(meta2, "Metadata_aligned.tsv")
 # ----------------------------
 # 6) Bray–Curtis + PERMANOVA + dispersion
 # ----------------------------
-meta2_perm <- meta2 %>% dplyr::filter(!is.na(Location), !is.na(Inoculation))
+meta2_perm <- meta2 %>% dplyr::filter(!is.na(Location), !is.na(Inoculation), !is.na(Environment))
+env_counts <- meta2_perm %>% dplyr::count(Environment, Inoculation, name = "n")
+write_tsv2(env_counts, "DIAGNOSTIC_Environment_by_Inoculation_counts.tsv")
+if (nrow(env_counts) != 2L * length(FUNCTION_ENV_LEVELS) || any(env_counts$n < 2L)) {
+  stop("Six environments with at least two samples per treatment are required for site-specific ALDEx2 volcanoes.")
+}
 X_cpm_perm <- X_cpm[meta2_perm$SampleID, , drop = FALSE]
 
 set.seed(1)
 d_bray <- vegan::vegdist(X_cpm_perm, method = "bray")
 
+# Five-location global model: Kowhai irrigated and rainfed share one Location.
+# Field_environment is descriptive and is not a sixth level in PERMANOVA.
+field_environment <- ifelse(
+  as.character(meta2_perm$Location) == "Kowhai",
+  paste("Kowhai", as.character(meta2_perm$Water)),
+  as.character(meta2_perm$Location)
+)
+model_scope <- tibble::tibble(
+  Model = "Pathway PERMANOVA: Location + Inoculation",
+  Location_levels_in_model = dplyr::n_distinct(meta2_perm$Location),
+  Field_environments_in_dataset = dplyr::n_distinct(field_environment),
+  Definition = paste(
+    "Five locations in PERMANOVA; Kowhai water regimes pooled.",
+    "Within-environment PERMANOVA and ALDEx2 analyse Kowhai Irrigated and Rainfed separately."
+  )
+)
+write_tsv2(model_scope, "PERMANOVA_model_scope.tsv")
+if (model_scope$Location_levels_in_model != 5 ||
+    model_scope$Field_environments_in_dataset != 6) {
+  warning("Expected five locations and six field environments; check Water metadata.")
+}
+
 # ----------------------------
-# 6A) Global PERMANOVA
+# 6A) Global five-location PERMANOVA
 # ----------------------------
 perm_main <- vegan::adonis2(
   d_bray ~ Location + Inoculation,
@@ -1731,13 +2130,48 @@ write_tsv2(
 )
 
 # ----------------------------
-# 6B) Inoculation effect with permutations constrained within Location
+# 6A2) Does the inoculation response vary among six field environments?
+# ----------------------------
+# This interaction compares treatment-associated shifts between environments
+# within this compartment. It is distinct from six separate treatment tests.
+# Treatment labels are permuted within environment. The metadata currently
+# lack a plot/block ID, so the test does not represent paired plot blocking.
+if (!identical(attr(d_bray, "Labels"), as.character(meta2_perm$SampleID))) {
+  stop("PERMANOVA metadata order does not match pathway distance matrix.")
+}
+env_permutations <- permute::how(nperm = 999, blocks = meta2_perm$Environment)
+set.seed(1)
+perm_env_interaction <- vegan::adonis2(
+  d_bray ~ Environment * Inoculation,
+  data = meta2_perm, permutations = env_permutations, by = "margin"
+)
+perm_env_interaction_df <- as.data.frame(perm_env_interaction) %>%
+  tibble::rownames_to_column("Term")
+perm_env_interaction_row <- perm_env_interaction_df %>%
+  dplyr::filter(Term %in% c("Environment:Inoculation", "Inoculation:Environment"))
+if (nrow(perm_env_interaction_row) != 1L) {
+  stop("Could not extract pathway Environment x Inoculation interaction: ",
+       paste(perm_env_interaction_df$Term, collapse = ", "))
+}
+perm_env_interaction_row <- perm_env_interaction_row %>%
+  dplyr::mutate(
+    N = nrow(meta2_perm), Field_environments = length(FUNCTION_ENV_LEVELS),
+    Permutations = 999L,
+    Permutation_blocks = "Environment (six fields; Kowhai split)",
+    .before = 1
+  )
+write_tsv2(perm_env_interaction_row,
+           "PERMANOVA_Environment_by_Inoculation.tsv")
+message("Functional Environment x Inoculation PERMANOVA saved in ", tab_dir)
+
+# ----------------------------
+# 6B) Inoculation effect with permutations constrained within Environment
 # ----------------------------
 perm_inoc_strata <- vegan::adonis2(
   d_bray ~ Inoculation,
   data = meta2_perm,
   permutations = 999,
-  strata = meta2_perm$Location
+  strata = meta2_perm$Environment
 )
 
 perm_inoc_strata_tbl <- as.data.frame(perm_inoc_strata) %>%
@@ -1745,97 +2179,50 @@ perm_inoc_strata_tbl <- as.data.frame(perm_inoc_strata) %>%
 
 write_tsv2(
   perm_inoc_strata_tbl,
-  "PERMANOVA_Inoculation_stratifiedByLocation.tsv"
+  "PERMANOVA_Inoculation_stratifiedByEnvironment.tsv"
 )
+unlink(file.path(tab_dir, "PERMANOVA_Inoculation_stratifiedByLocation.tsv"))
 
+# 6C) Within-environment PERMANOVA: six separate field environments
 # ----------------------------
-# 6C) Site-specific PERMANOVA: Inoculation within each Location
-# ----------------------------
-site_levels_present <- sort(unique(as.character(meta2_perm$Location)))
-
-site_counts <- meta2_perm %>%
-  dplyr::count(Location, Inoculation, name = "n")
-write_tsv2(site_counts, "DIAGNOSTIC_Site_by_Inoculation_counts.tsv")
-
-perm_by_site_list <- lapply(site_levels_present, function(loc) {
-  
-  meta_loc <- meta2_perm %>%
-    dplyr::filter(as.character(Location) == loc) %>%
+# The five-location global model above is retained. Field-specific treatment
+# tests below split Kowhai into Irrigated and Rainfed (four samples per group).
+perm_by_environment <- purrr::map_dfr(FUNCTION_ENV_LEVELS, function(env) {
+  meta_env <- meta2_perm %>%
+    dplyr::filter(as.character(Environment) == env) %>%
     droplevels()
-  
-  message("Running within-site PERMANOVA for: ", loc)
-  message("  N = ", nrow(meta_loc))
-  print(table(meta_loc$Inoculation, useNA = "ifany"))
-  
-  if (nrow(meta_loc) < 4) {
-    message("  Skipped: fewer than 4 samples")
-    return(NULL)
+  group_counts <- table(meta_env$Inoculation)
+  if (nrow(meta_env) < 4L || length(group_counts) != 2L ||
+      any(group_counts < 2L)) {
+    stop("Expected both inoculation groups in field environment ", env)
   }
-  
-  inoc_present <- unique(as.character(meta_loc$Inoculation))
-  inoc_present <- inoc_present[!is.na(inoc_present)]
-  if (length(inoc_present) < 2) {
-    message("  Skipped: only one inoculation group present")
-    return(NULL)
-  }
-  
-  X_loc <- X_cpm_perm[meta_loc$SampleID, , drop = FALSE]
-  d_loc <- vegan::vegdist(X_loc, method = "bray")
-  
-  perm_loc <- vegan::adonis2(
-    d_loc ~ Inoculation,
-    data = meta_loc,
-    permutations = 999
+  X_env <- X_cpm_perm[meta_env$SampleID, , drop = FALSE]
+  d_env <- vegan::vegdist(X_env, method = "bray")
+  fit <- vegan::adonis2(
+    d_env ~ Inoculation, data = meta_env, permutations = 999
   )
-  
-  perm_loc_df <- as.data.frame(perm_loc) %>%
-    tibble::rownames_to_column("Term")
-  
-  readr::write_tsv(
-    perm_loc_df,
-    file.path(tab_dir, paste0("DIAGNOSTIC_PERMANOVA_", loc, ".tsv"))
-  )
-  
-  perm_loc_df <- perm_loc_df %>%
-    dplyr::filter(!Term %in% c("Residual", "Total")) %>%
-    dplyr::mutate(
-      Term = "Inoculation",
-      Location = loc,
-      N = nrow(meta_loc)
-    ) %>%
-    dplyr::select(Location, N, Term, Df, SumOfSqs, R2, F, `Pr(>F)`)
-  
-  if (nrow(perm_loc_df) == 0) {
-    message("  Skipped: no model row found in adonis2 output")
-    return(NULL)
+  fit_df <- as.data.frame(fit)
+  if (nrow(fit_df) < 1L ||
+      !rownames(fit_df)[1] %in% c("Model", "Inoculation")) {
+    stop("Unexpected adonis2 output in ", env, ": ",
+         paste(rownames(fit_df), collapse = ", "))
   }
-  
-  perm_loc_df
+  fit_df[1, , drop = FALSE] %>%
+    dplyr::mutate(Environment = env, N = nrow(meta_env),
+                  Term = "Inoculation", .before = 1) %>%
+    dplyr::select(Environment, N, Term, Df, SumOfSqs, R2, F, `Pr(>F)`)
 })
-
-perm_by_site <- dplyr::bind_rows(perm_by_site_list)
-
-if (nrow(perm_by_site) == 0) {
-  warning("No within-site PERMANOVA results were generated. Check diagnostic files.")
-  perm_by_site <- tibble::tibble(
-    Location = character(),
-    N = integer(),
-    Term = character(),
-    Df = numeric(),
-    SumOfSqs = numeric(),
-    R2 = numeric(),
-    F = numeric(),
-    `Pr(>F)` = numeric()
-  )
+if (nrow(perm_by_environment) != 6L ||
+    !setequal(perm_by_environment$Environment, FUNCTION_ENV_LEVELS)) {
+  stop("Expected one inoculation PERMANOVA row per six field environments.")
 }
-
-write_tsv2(
-  perm_by_site,
-  "PERMANOVA_withinLocation_Inoculation.tsv"
-)
+write_tsv2(perm_by_environment, "PERMANOVA_withinEnvironment_Inoculation.tsv")
+# Remove pooled five-location outputs produced by older script versions.
+unlink(file.path(tab_dir, "PERMANOVA_withinLocation_Inoculation.tsv"))
+message("Functional within-environment PERMANOVA: six separate field results saved.")
 
 # ----------------------------
-# 6D) Combined summary table: global + within-site
+# 6D) Combined summary table: global + six environments
 # ----------------------------
 perm_main_combined <- perm_main_tbl %>%
   dplyr::filter(Term %in% c("Location", "Inoculation")) %>%
@@ -1846,22 +2233,26 @@ perm_main_combined <- perm_main_tbl %>%
   ) %>%
   dplyr::select(Model, Location_label, N, Term, Df, SumOfSqs, R2, F, `Pr(>F)`)
 
-perm_by_site_combined <- perm_by_site %>%
+perm_by_environment_combined <- perm_by_environment %>%
   dplyr::mutate(
-    Model = "Within-site models",
-    Location_label = Location
+    Model = "Within-environment",
+    Location_label = pretty_environment_label(Environment)
   ) %>%
   dplyr::select(Model, Location_label, N, Term, Df, SumOfSqs, R2, F, `Pr(>F)`)
 
 perm_combined <- dplyr::bind_rows(
   perm_main_combined,
-  perm_by_site_combined
+  perm_env_interaction_row %>%
+    dplyr::mutate(Model = "Environment interaction", Location_label = "Six environments") %>%
+    dplyr::select(Model, Location_label, N, Term, Df, SumOfSqs, R2, F, `Pr(>F)`),
+  perm_by_environment_combined
 )
 
 write_tsv2(
   perm_combined,
-  "TABLE_PERMANOVA_ROOT_Function_Global_and_WithinSite.tsv"
+  "TABLE_PERMANOVA_ROOT_Function_Global_and_WithinEnvironment.tsv"
 )
+unlink(file.path(tab_dir, "TABLE_PERMANOVA_ROOT_Function_Global_and_WithinSite.tsv"))
 
 # ----------------------------
 # 6E) Dispersion tests
@@ -1892,10 +2283,15 @@ scores_pcoa <- as.data.frame(pcoa$vectors[, 1:2]) %>%
 write_tsv2(scores_pcoa, "PCoA_scores.tsv")
 
 p_pcoa <- ggplot(scores_pcoa, aes(PCoA1, PCoA2)) +
-  geom_point(aes(color = Location, shape = Inoculation),
+  geom_point(aes(color = Environment, shape = Inoculation),
              size = 2.2, alpha = 0.9, stroke = 0.35) +
-  scale_color_manual(values = loc_cols, drop = FALSE) +
-  scale_shape_manual(values = c(Control = 16, Panch = 17), drop = FALSE) +
+  scale_color_manual(
+    values = functional_environment_cols,
+    labels = pretty_environment_label,
+    drop = FALSE
+  ) +
+  scale_shape_manual(values = c(Control = 16, Trichoderma = 17),
+                     labels = trichoderma_inoculation_labels, drop = FALSE) +
   theme_nature(base_size = 8) +
   labs(
     title = "Root PCoA (Bray–Curtis)",
@@ -1917,30 +2313,37 @@ dir.create(NATCOM_DIR, recursive = TRUE, showWarnings = FALSE)
 p_fig3_root_func <- p_pcoa +
   labs(
     title = "Root",
-    colour = "Location",
+    colour = "Field environment",
     shape = "Inoculation"
   ) +
-  theme_nature(base_size = 7) +
+  theme_nature(base_size = FIG3_PCOA_BASE_SIZE) +
   theme(
     legend.position = "right",
-    plot.title = element_text(face = "bold", hjust = 0, size = 8),
-    axis.title = element_text(face = "bold", size = 8),
-    axis.text = element_text(colour = "black", size = 7),
-    legend.title = element_text(face = "bold", size = 7),
-    legend.text = element_text(size = 7),
-    aspect.ratio = 1,
+    plot.title = element_text(face = "bold", hjust = 0, size = FIG3_PCOA_TITLE_SIZE),
+    axis.title = element_text(face = "bold", size = FIG3_PCOA_AXIS_TITLE_SIZE),
+    axis.text = element_text(colour = "black", size = FIG3_PCOA_AXIS_TEXT_SIZE),
+    legend.title = element_text(face = "bold", size = FIG3_PCOA_LEGEND_TITLE_SIZE),
+    legend.text = element_text(size = FIG3_PCOA_LEGEND_TEXT_SIZE),
+    legend.key.size = grid::unit(4.2, "mm"),
+    legend.spacing.y = grid::unit(1.2, "mm"),
+    aspect.ratio = FIG3_PCOA_ASPECT_RATIO,
     plot.margin = margin(4, 4, 4, 4)
   ) +
   guides(
-    colour = guide_legend(override.aes = list(size = 2.4), order = 1),
-    shape  = guide_legend(override.aes = list(size = 2.4), order = 2)
+    colour = guide_legend(override.aes = list(size = 3.2), order = 1),
+    shape  = guide_legend(override.aes = list(size = 3.2), order = 2)
   )
+
+saveRDS(
+  p_fig3_root_func,
+  file.path(NATCOM_DIR, "p_fig3_root_func.rds")
+)
 
 ggsave(
   file.path(NATCOM_DIR, "Fig3B_Root_Function_PCoA_NatCom_panel.pdf"),
   p_fig3_root_func,
-  width = 105,
-  height = 75,
+  width = 155,
+  height = FIG3_HEIGHT_MM,
   units = "mm",
   useDingbats = FALSE
 )
@@ -1948,8 +2351,8 @@ ggsave(
 ggsave(
   file.path(NATCOM_DIR, "Fig3B_Root_Function_PCoA_NatCom_panel.png"),
   p_fig3_root_func,
-  width = 105,
-  height = 75,
+  width = 155,
+  height = FIG3_HEIGHT_MM,
   units = "mm",
   dpi = 600
 )
@@ -1981,7 +2384,7 @@ p_fig3_perm <- ggplot(
   geom_text(
     aes(label = Label),
     vjust = -0.25,
-    size = 2.2,
+    size = 4.6,
     lineheight = 0.9
   ) +
   scale_fill_manual(
@@ -2000,21 +2403,26 @@ p_fig3_perm <- ggplot(
     x = NULL,
     y = expression(Treatment~R^2)
   ) +
-  theme_nature(base_size = 7) +
+  theme_nature(base_size = FIG3_PCOA_BASE_SIZE) +
   theme(
     legend.position = "none",
-    plot.title = element_text(face = "bold", hjust = 0, size = 8),
-    axis.title = element_text(face = "bold", size = 8),
-    axis.text = element_text(colour = "black", size = 7),
+    plot.title = element_text(face = "bold", hjust = 0, size = FIG3_PCOA_TITLE_SIZE),
+    axis.title = element_text(face = "bold", size = FIG3_PCOA_AXIS_TITLE_SIZE),
+    axis.text = element_text(colour = "black", size = FIG3_PCOA_AXIS_TEXT_SIZE),
     axis.text.x = element_text(angle = 35, hjust = 1),
     plot.margin = margin(4, 4, 4, 4)
   )
 
+saveRDS(
+  p_fig3_perm,
+  file.path(NATCOM_DIR, "p_fig3_perm.rds")
+)
+
 ggsave(
   file.path(NATCOM_DIR, "Fig3C_PERMANOVA_Function_Treatment_Effect_NatCom_panel.pdf"),
   p_fig3_perm,
-  width = 55,
-  height = 75,
+  width = 100,
+  height = FIG3_HEIGHT_MM,
   units = "mm",
   useDingbats = FALSE
 )
@@ -2022,8 +2430,8 @@ ggsave(
 ggsave(
   file.path(NATCOM_DIR, "Fig3C_PERMANOVA_Function_Treatment_Effect_NatCom_panel.png"),
   p_fig3_perm,
-  width = 55,
-  height = 75,
+  width = 100,
+  height = FIG3_HEIGHT_MM,
   units = "mm",
   dpi = 600
 )
@@ -2052,17 +2460,18 @@ if (file.exists(rhiz_panel_png)) {
     p_fig3_perm,
     nrow = 1,
     labels = c("A", "B", "C"),
-    label_size = 18,
+    label_size = FIG3_TAG_SIZE,
     label_fontface = "bold",
-    rel_widths = c(1.35, 1.65, 0.75),
-    align = "h"
+    rel_widths = c(0.82, 1.33, 0.88),
+    align = "h",
+    axis = "tb"
   )
   
   ggsave(
     file.path(NATCOM_DIR, "Figure3_Functional_Response_NatCom.pdf"),
     fig3_function_response,
-    width = 210,
-    height = 80,
+    width = FIG3_WIDTH_MM,
+    height = FIG3_HEIGHT_MM,
     units = "mm",
     dpi = 600,
     useDingbats = FALSE
@@ -2071,8 +2480,8 @@ if (file.exists(rhiz_panel_png)) {
   ggsave(
     file.path(NATCOM_DIR, "Figure3_Functional_Response_NatCom.png"),
     fig3_function_response,
-    width = 210,
-    height = 80,
+    width = FIG3_WIDTH_MM,
+    height = FIG3_HEIGHT_MM,
     units = "mm",
     dpi = 600
   )
@@ -2080,8 +2489,8 @@ if (file.exists(rhiz_panel_png)) {
   ggsave(
     file.path(NATCOM_DIR, "Figure3_Functional_Response_NatCom.svg"),
     fig3_function_response,
-    width = 210,
-    height = 80,
+    width = FIG3_WIDTH_MM,
+    height = FIG3_HEIGHT_MM,
     units = "mm"
   )
 } else {
@@ -2103,7 +2512,8 @@ p_nmds <- ggplot(scores_nmds, aes(NMDS1, NMDS2)) +
   geom_point(aes(color = Location, shape = Inoculation),
              size = 2.2, alpha = 0.9, stroke = 0.35) +
   scale_color_manual(values = loc_cols, drop = FALSE) +
-  scale_shape_manual(values = c(Control = 16, Panch = 17), drop = FALSE) +
+  scale_shape_manual(values = c(Control = 16, Trichoderma = 17),
+                     labels = trichoderma_inoculation_labels, drop = FALSE) +
   theme_nature(base_size = 8) +
   labs(title = paste0("Root NMDS (stress=", round(nmds$stress, 3), ")"))
 save_fig(p_nmds, "Fig_NMDS_Location_Inoculation_Nature", w = 6.5, h = 4.8)
@@ -2145,7 +2555,7 @@ n_control <- sum(meta2_perm$Inoculation == "Control", na.rm = TRUE)
 
 save_pheatmap(
   hmA_blk, annoA_blk,
-  name = "Fig_Heatmap_TopVariablePathways_CPM_BLOCKED_ControlVsPanch",
+  name = "Fig_Heatmap_TopVariablePathways_CPM_BLOCKED_ControlVsTrichoderma",
   main = paste0("Top ", N_var, " variable pathways (z-scored CPM) — blocked by inoculation"),
   w_pdf = 16, h_pdf = 7.0,
   cluster_cols = FALSE, cluster_rows = TRUE,
@@ -2204,7 +2614,7 @@ write_tsv2(aldex_global, "ALDEx2_Inoculation_Global.tsv")
 
 plot_volcano_splitlabels(
   aldex_global,
-  "Differential pathways: Panch vs Control (Global; RAW)",
+  "Differential pathways: Trichoderma vs Control (Global; RAW)",
   "Fig_ALDEx2_Volcano_Inoculation_Global_Nature",
   p_cut = 0.10, effect_cut = 0.25,
   label_n_right = 10, label_n_left = 10
@@ -2225,28 +2635,58 @@ aldex_by_loc <- purrr::map_dfr(levels(meta2_perm$Location), function(loc) {
 })
 write_tsv2(aldex_by_loc, "ALDEx2_Inoculation_byLocation.tsv")
 
+# Separate field-environment contrasts for Supplementary Figures S3/S4.
+# Existing five-location results and cross-location pathway screens stay pooled.
+aldex_by_env <- purrr::map_dfr(FUNCTION_ENV_LEVELS, function(env) {
+  idx <- as.character(meta2_perm$Environment) == env
+  g <- droplevels(meta2_perm$Inoculation[idx])
+  if (nlevels(g) != 2L || any(table(g) < 2L)) {
+    stop("Insufficient treatment replicates for environment: ", env)
+  }
+  run_aldex2_one(
+    X_sub = X_raw_int[idx, , drop = FALSE],
+    group = g,
+    label = paste0("Inoculation_", env),
+    mc_samples = 128,
+    denom = "all"
+  ) %>% mutate(Environment = env, Location = as.character(meta2_perm$Location[which(idx)[1]]))
+})
+write_tsv2(aldex_by_env, "ALDEx2_Inoculation_byEnvironment.tsv")
+
 for (loc in levels(meta2_perm$Location)) {
   sub <- aldex_by_loc %>% filter(Location == loc)
   if (nrow(sub) == 0) next
   
   plot_volcano_splitlabels(
     sub,
-    paste0("Differential pathways: Panch vs Control — ", loc, " (RAW)"),
+    paste0("Differential pathways: Trichoderma vs Control — ", loc, " (RAW)"),
     paste0("Fig_ALDEx2_Volcano_Inoculation_", loc, "_Nature"),
     p_cut = 0.10, effect_cut = 0.25,
     label_n_right = 10, label_n_left = 10
   )
 }
 
-support_ep  <- 0.10
-support_eff <- 0.25
+# Screening for cross-location consistency is nominal, not BH significant.
+MATRIX_EFFECT_MIN <- PATHWAY_EFFECT_MIN  # Root site matrix
+support_ep  <- PATHWAY_NOMINAL_P
+support_eff <- PATHWAY_EFFECT_MIN
+write_tsv2(tibble::tibble(
+  Selection = c("Exploratory pathway screen", "BH-adjusted pathway evidence"),
+  P_column = c("we.ep", "we.eBH"),
+  P_cutoff = c(PATHWAY_NOMINAL_P, PATHWAY_ADJUSTED_Q),
+  Minimum_absolute_effect = PATHWAY_EFFECT_MIN,
+  Matrix_absolute_effect = MATRIX_EFFECT_MIN,
+  Used_for_headline_selection = c(TRUE, FALSE)
+), "TABLE_PathwayThresholds.tsv")
 
 consistency <- aldex_by_loc %>%
   mutate(
     supported = (we.ep < support_ep) & (abs(effect) > support_eff),
+    adjusted_supported = (we.eBH < PATHWAY_ADJUSTED_Q) &
+      (abs(effect) > support_eff),
     dir = case_when(
       effect > 0 ~ "Higher_in_Control",
-      effect < 0 ~ "Higher_in_Panch",
+      effect < 0 ~ "Higher_in_Trichoderma",
       TRUE ~ "Zero"
     )
   ) %>%
@@ -2254,20 +2694,27 @@ consistency <- aldex_by_loc %>%
   summarise(
     n_locations_tested    = n_distinct(Location),
     n_locations_supported = sum(supported, na.rm = TRUE),
+    n_locations_adjusted = sum(adjusted_supported, na.rm = TRUE),
     dir_supported         = paste(sort(unique(dir[supported])), collapse = ";"),
     median_effect         = median(effect, na.rm = TRUE),
     min_weep              = min(we.ep, na.rm = TRUE),
+    min_weebh             = min(we.eBH, na.rm = TRUE),
     .groups = "drop"
   ) %>%
   arrange(desc(n_locations_supported), min_weep, desc(abs(median_effect)))
 
 write_tsv2(consistency, "TABLE_PathwayConsistency_acrossLocations.tsv")
+write_tsv2(
+  consistency %>% filter(n_locations_adjusted >= 1),
+  "TABLE_PathwayConsistency_BHAdjusted.tsv"
+)
 
 headline <- consistency %>%
   filter(n_locations_supported >= 2) %>%
-  slice_head(n = 40)
+  slice_head(n = 40) %>%
+  mutate(Selection_basis = "Exploratory: we.ep < 0.10 and |effect| > 0.25 in at least two locations; not BH adjusted")
 write_tsv2(headline, "TABLE_HeadlinePathways_sigIn2plusLocations.tsv")
-message("Headline pathways (>=2 locations supported): ", nrow(headline))
+message("Exploratory nominal-screen headline pathways (>=2 locations; not BH adjusted): ", nrow(headline))
 
 headline1 <- tibble::tibble(Pathway = character())
 if (nrow(headline) == 0) {
@@ -2303,7 +2750,7 @@ if (length(hm_paths) >= 10) {
   
   save_pheatmap(
     hmB_blk, annoB_blk,
-    name = "Fig_Heatmap_HeadlineInoculationPathways_CPM_BLOCKED_ControlVsPanch",
+    name = "Fig_Heatmap_HeadlineInoculationPathways_CPM_BLOCKED_ControlVsTrichoderma",
     main = "Inoculation-associated pathways (z-scored CPM)",
     w_pdf = 16, h_pdf = 7.0,
     cluster_cols = FALSE, cluster_rows = TRUE,
@@ -2322,62 +2769,63 @@ if (length(hm_paths) >= 10) {
 }
 
 # =========================
-# 11) Top pathways responding to Panch inoculation
+# 11) Top pathways responding to Trichoderma inoculation
 #     safely integrated
 # =========================
-p_cut_matrix   <- 0.10
-eff_cut_matrix <- 0.25
-min_sites_supported <- 2
+# Exploratory root matrix: same nominal and effect cutoffs as headline.
+p_cut_matrix   <- PATHWAY_NOMINAL_P
+eff_cut_matrix <- MATRIX_EFFECT_MIN
+min_environments_supported <- 2
 top_n_matrix <- 15
-focus_matrix <- "Panch"   # "Panch" or "Both"
+focus_matrix <- "Trichoderma"   # "Trichoderma" or "Both"
 
-aldex_plot_fp <- file.path(tab_dir, "ALDEx2_Inoculation_byLocation.tsv")
+aldex_plot_fp <- file.path(tab_dir, "ALDEx2_Inoculation_byEnvironment.tsv")
 if (file.exists(aldex_plot_fp)) {
   
   df_matrix <- readr::read_tsv(aldex_plot_fp, show_col_types = FALSE) %>%
     mutate(
       supported = (we.ep < p_cut_matrix) & (abs(effect) > eff_cut_matrix),
       direction = case_when(
-        effect < 0 ~ "Higher in Panch",
+        effect < 0 ~ "Higher in Trichoderma",
         effect > 0 ~ "Higher in Control",
         TRUE ~ "No change"
       ),
-      direction = factor(direction, levels = c("Higher in Panch", "Higher in Control", "No change"))
+      direction = factor(direction, levels = c("Higher in Trichoderma", "Higher in Control", "No change"))
     )
   
   rank_tbl <- df_matrix %>%
     filter(direction != "No change") %>%
     group_by(Pathway) %>%
     summarise(
-      n_sites_supported = sum(supported, na.rm = TRUE),
+      n_environments_supported = sum(supported, na.rm = TRUE),
       median_abs_effect = median(abs(effect), na.rm = TRUE),
       min_p = min(we.ep, na.rm = TRUE),
-      n_panch_supported = sum(supported & direction == "Higher in Panch", na.rm = TRUE),
+      n_trichoderma_supported = sum(supported & direction == "Higher in Trichoderma", na.rm = TRUE),
       .groups = "drop"
     ) %>%
-    filter(n_sites_supported >= min_sites_supported)
+    filter(n_environments_supported >= min_environments_supported)
   
-  if (focus_matrix == "Panch") {
-    rank_tbl <- rank_tbl %>% filter(n_panch_supported >= 1)
+  if (focus_matrix == "Trichoderma") {
+    rank_tbl <- rank_tbl %>% filter(n_trichoderma_supported >= 1)
   }
   
   rank_tbl <- rank_tbl %>%
-    arrange(desc(n_sites_supported), min_p, desc(median_abs_effect)) %>%
+    arrange(desc(n_environments_supported), min_p, desc(median_abs_effect)) %>%
     slice_head(n = top_n_matrix)
   
   top_paths_matrix <- rank_tbl$Pathway
   
   if (length(top_paths_matrix) > 0) {
-    loc_levels <- names(loc_cols)
+    env_levels <- FUNCTION_ENV_LEVELS
     
     plot_df_matrix <- df_matrix %>%
       filter(Pathway %in% top_paths_matrix) %>%
       mutate(
         Pathway  = factor(Pathway, levels = rev(top_paths_matrix)),
-        Location = factor(Location, levels = loc_levels),
+        Environment = factor(Environment, levels = env_levels),
         alpha_val = ifelse(supported, 0.95, 0.20),
         color_key = case_when(
-          direction == "Higher in Panch" ~ "Higher in Panch",
+          direction == "Higher in Trichoderma" ~ "Higher in Trichoderma",
           direction == "Higher in Control" ~ "Higher in Control",
           TRUE ~ "No change"
         )
@@ -2385,11 +2833,11 @@ if (file.exists(aldex_plot_fp)) {
     
     title_txt <- paste0(
       "Top ", top_n_matrix,
-      ifelse(focus_matrix == "Panch", " pathways with Panch signal", " pathways responding"),
-      " supported across \u2265", min_sites_supported, " sites"
+      ifelse(focus_matrix == "Trichoderma", " pathways with Trichoderma signal", " pathways responding"),
+      " supported across \u2265", min_environments_supported, " environments"
     )
     
-    p_matrix <- ggplot(plot_df_matrix, aes(x = Location, y = Pathway)) +
+    p_matrix <- ggplot(plot_df_matrix, aes(x = Environment, y = Pathway)) +
       geom_point(
         aes(
           size  = abs(effect),
@@ -2399,21 +2847,25 @@ if (file.exists(aldex_plot_fp)) {
         ),
         stroke = 0.25
       ) +
+      scale_x_discrete(labels = fig4_environment_axis_label, drop = FALSE) +
       scale_alpha_identity(guide = "none") +
       scale_size_continuous(name = "Effect size |effect|", range = c(1.5, 8)) +
       scale_shape_manual(
         name = "Direction",
-        values = c("Higher in Panch" = 16, "Higher in Control" = 17, "No change" = 1),
-        drop = FALSE
+        values = c("Higher in Trichoderma" = 16, "Higher in Control" = 17, "No change" = 1),
+        drop = FALSE,
+        guide = "none"
       ) +
       scale_color_manual(
         name = "Direction",
         values = c(dir_cols, "No change" = "grey80"),
-        breaks = c("Higher in Panch", "Higher in Control"),
-        guide = guide_legend(override.aes = list(alpha = 1, size = 3))
+        breaks = c("Higher in Trichoderma", "Higher in Control"),
+        labels = trichoderma_direction_labels,
+        guide = guide_legend(override.aes = list(alpha = 1, size = 3,
+                                                 shape = c(16, 17)))
       ) +
-      labs(title = title_txt, x = NULL, y = NULL) +
-      theme_nature_matrix(base_size = 9) +
+      labs(title = trichoderma_title(title_txt), x = NULL, y = NULL) +
+      theme_nature_matrix(base_size = FIG4_SOURCE_BASE_SIZE) +
       theme(
         panel.grid.major.x = element_line(color = "grey92", linewidth = 0.35),
         panel.grid.major.y = element_blank()
@@ -2452,6 +2904,8 @@ pretty_location <- function(x) {
   dplyr::recode(
     as.character(x),
     "Eyrewell_Forest" = "Eyrewell Forest",
+    "Kowhai_Irrigated" = "Kowhai (Irrigated)",
+    "Kowhai_Rainfed" = "Kowhai (Rainfed)",
     "West_Coast" = "West Coast",
     .default = as.character(x)
   )
@@ -2469,7 +2923,7 @@ plot_volcano_panel <- function(res_tbl, panel_title,
       Sig = (we.ep < p_cut) & (abs(effect) > effect_cut),
       Direction = case_when(
         Sig & effect > 0 ~ "Higher in Control",
-        Sig & effect < 0 ~ "Higher in Panch",
+        Sig & effect < 0 ~ "Higher in Trichoderma",
         TRUE ~ "Not highlighted"
       )
     )
@@ -2481,11 +2935,12 @@ plot_volcano_panel <- function(res_tbl, panel_title,
     ) +
     scale_colour_manual(
       values = c(
-        "Higher in Panch" = "#0072B2",
+        "Higher in Trichoderma" = "#0072B2",
         "Higher in Control" = "#D55E00",
         "Not highlighted" = "grey70"
       ),
-      breaks = c("Higher in Panch", "Higher in Control", "Not highlighted")
+      breaks = c("Higher in Trichoderma", "Higher in Control", "Not highlighted"),
+      labels = trichoderma_direction_labels
     ) +
     geom_vline(
       xintercept = c(-effect_cut, effect_cut),
@@ -2517,25 +2972,25 @@ plot_volcano_panel <- function(res_tbl, panel_title,
 # Automatically set common y-axis limit from all site-level results
 common_ylim <- c(
   0,
-  ceiling(max(-log10(aldex_by_loc$we.ep + 1e-300), na.rm = TRUE))
+  ceiling(max(-log10(aldex_by_env$we.ep + 1e-300), na.rm = TRUE))
 )
 
 # Optional: restrict very tall p-value axis if labels become compressed
 common_ylim[2] <- min(common_ylim[2], 4)
 
 common_xlim <- c(
-  floor(min(aldex_by_loc$effect, na.rm = TRUE)),
-  ceiling(max(aldex_by_loc$effect, na.rm = TRUE))
+  floor(min(aldex_by_env$effect, na.rm = TRUE)),
+  ceiling(max(aldex_by_env$effect, na.rm = TRUE))
 )
 
 # Optional: make all panels visually comparable
 common_xlim[1] <- max(common_xlim[1], -4)
 common_xlim[2] <- min(common_xlim[2], 4)
 
-site_order <- c("Eyrewell_Forest", "Kowhai", "LU_H8", "Rolleston", "West_Coast")
+site_order <- FUNCTION_ENV_LEVELS
 
 volcano_panels <- lapply(site_order, function(loc) {
-  sub <- aldex_by_loc %>% filter(Location == loc)
+  sub <- aldex_by_env %>% filter(Environment == loc)
   if (nrow(sub) == 0) return(NULL)
   
   plot_volcano_panel(
@@ -2648,24 +3103,53 @@ p_fig3_perm <- readRDS(
 # ----------------------------
 p_fig3_rhiz_clean <- p_fig3_rhiz_func +
   theme(
-    legend.position = "none"
+    legend.position = "none",
+    plot.title = element_text(face = "bold", hjust = 0, size = FIG3_PCOA_TITLE_SIZE),
+    axis.title = element_text(face = "bold", size = FIG3_PCOA_AXIS_TITLE_SIZE),
+    axis.text = element_text(colour = "black", size = FIG3_PCOA_AXIS_TEXT_SIZE),
+    aspect.ratio = FIG3_PCOA_ASPECT_RATIO,
+    plot.margin = margin(4, 4, 4, 4)
   )
 
 p_fig3_root_clean <- p_fig3_root_func +
   theme(
-    legend.position = "right"
+    legend.position = "right",
+    plot.title = element_text(face = "bold", hjust = 0, size = FIG3_PCOA_TITLE_SIZE),
+    axis.title = element_text(face = "bold", size = FIG3_PCOA_AXIS_TITLE_SIZE),
+    axis.text = element_text(colour = "black", size = FIG3_PCOA_AXIS_TEXT_SIZE),
+    legend.title = element_text(face = "bold", size = FIG3_PCOA_LEGEND_TITLE_SIZE),
+    legend.text = element_text(size = FIG3_PCOA_LEGEND_TEXT_SIZE),
+    legend.key.size = grid::unit(4.2, "mm"),
+    legend.spacing.y = grid::unit(1.2, "mm"),
+    aspect.ratio = FIG3_PCOA_ASPECT_RATIO,
+    plot.margin = margin(4, 4, 4, 4)
+  ) +
+  guides(
+    colour = guide_legend(override.aes = list(size = 3.2), order = 1),
+    shape = guide_legend(override.aes = list(size = 3.2), order = 2)
+  )
+
+p_fig3_perm_clean <- p_fig3_perm +
+  labs(title = "Inoculation effect") +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0, size = FIG3_PCOA_TITLE_SIZE),
+    axis.title = element_text(face = "bold", size = FIG3_PCOA_AXIS_TITLE_SIZE),
+    axis.text = element_text(colour = "black", size = FIG3_PCOA_AXIS_TEXT_SIZE),
+    axis.text.x = element_text(angle = 35, hjust = 1),
+    plot.margin = margin(4, 4, 4, 4)
   )
 
 fig3_function_response <- cowplot::plot_grid(
   p_fig3_rhiz_clean,
   p_fig3_root_clean,
-  p_fig3_perm,
+  p_fig3_perm_clean,
   nrow = 1,
   labels = c("A", "B", "C"),
-  label_size = 12,
+  label_size = FIG3_TAG_SIZE,
   label_fontface = "bold",
-  rel_widths = c(1.13, 1.6, 0.55),
-  align = "h"
+  rel_widths = c(0.82, 1.33, 0.88),
+  align = "h",
+  axis = "tb"
 )
 
 # ----------------------------
@@ -2674,8 +3158,8 @@ fig3_function_response <- cowplot::plot_grid(
 ggsave(
   file.path(NATCOM_DIR, "Figure3_Functional_Response_NatCom.pdf"),
   fig3_function_response,
-  width = 210,
-  height = 80,
+  width = FIG3_WIDTH_MM,
+  height = FIG3_HEIGHT_MM,
   units = "mm",
   dpi = 600,
   useDingbats = FALSE
@@ -2684,8 +3168,8 @@ ggsave(
 ggsave(
   file.path(NATCOM_DIR, "Figure3_Functional_Response_NatCom.png"),
   fig3_function_response,
-  width = 210,
-  height = 80,
+  width = FIG3_WIDTH_MM,
+  height = FIG3_HEIGHT_MM,
   units = "mm",
   dpi = 600
 )
@@ -2693,8 +3177,8 @@ ggsave(
 ggsave(
   file.path(NATCOM_DIR, "Figure3_Functional_Response_NatCom.svg"),
   fig3_function_response,
-  width = 210,
-  height = 80,
+  width = FIG3_WIDTH_MM,
+  height = FIG3_HEIGHT_MM,
   units = "mm"
 )
 
@@ -2754,13 +3238,6 @@ stopifnot(file.exists(root_rds))
 p_rhiz <- readRDS(rhiz_rds)
 p_root <- readRDS(root_rds)
 
-# ----------------------------
-# 2) Read ggplot objects
-# ----------------------------
-p_rhiz <- readRDS(rhiz_rds)
-p_root <- readRDS(root_rds)
-
-
 # Short pathway labels for Figure 4 site-matrix panels
 short_pathway_labels_fig4 <- function(x) {
   y <- as.character(x)
@@ -2786,7 +3263,9 @@ short_pathway_labels_fig4 <- function(x) {
   y <- gsub("^queuosine biosynthesis I.*$", "Queuosine Biosynthesis", y, ignore.case = TRUE)
   y <- gsub("^fatty acid biosynthesis I.*$", "Fatty Acid Biosynthesis I", y, ignore.case = TRUE)
   y <- gsub("^fatty acid biosynthesis II.*$", "Fatty Acid Biosynthesis II", y, ignore.case = TRUE)
-  y <- gsub("^geranylgeranyldiphosphate biosynthesis I.*$", "Geranylgeranyldiphosphate Biosynthesis", y, ignore.case = TRUE)
+  y <- gsub("^geranylgeranyldiphosphate biosynthesis( I.*)?$", "GGPP Biosynthesis", y, ignore.case = TRUE)
+  y <- gsub("^3[-−]hydroxypropanoate/4[-−]hydroxybutanate cycle$", "3-HP/4-HB Cycle", y, ignore.case = TRUE)
+  y <- gsub("^homocysteine and cysteine interconversion$", "Cys–Homocys Interconversion", y, ignore.case = TRUE)
   y <- gsub("^tetrahydrofolate biosynthesis$", "Tetrahydrofolate Biosynthesis", y, ignore.case = TRUE)
   y <- gsub("^pyridoxal 5'-phosphate biosynthesis$", "Pyridoxal 5'-Phosphate Biosynthesis", y, ignore.case = TRUE)
   y <- gsub("^taurine degradation$", "Taurine Degradation", y, ignore.case = TRUE)
@@ -2796,7 +3275,86 @@ short_pathway_labels_fig4 <- function(x) {
   y <- gsub("^sulfide oxidation$", "Sulfide Oxidation", y, ignore.case = TRUE)
   y <- gsub("\\s+", " ", y)
   y <- trimws(y)
-  tools::toTitleCase(y)
+  y <- tools::toTitleCase(y)
+  # Display abbreviations only. Full MetaCyc descriptions are saved in the
+  # adjacent Figure4_Pathway_Label_Key.tsv for unambiguous interpretation.
+  y <- gsub("^Hentriaconta-.*-Nonaene Biosynthesis$",
+            "Hentriaconta-Nonaene Biosynth.", y, ignore.case = TRUE)
+  y <- gsub("^4-Amino-2-Methyl-5-Diphosphomethylpyrimidine Biosynthesis II$",
+            "5-DPMP Biosynth. II", y, ignore.case = TRUE)
+  y <- gsub("^D-Myo-Inositol.?Trisphosphate Biosynthesis$",
+            "Inositol Trisphosphate Biosynth.", y, ignore.case = TRUE)
+  y <- gsub("^Nucleoside and Nucleotide Degradation$",
+            "Nucleoside/Nucleotide Degrad.", y, ignore.case = TRUE)
+  y <- gsub("^Pyridoxal 5'-Phosphate Biosynthesis$",
+            "Pyridoxal 5'-P Biosynth.", y, ignore.case = TRUE)
+  y <- gsub("^Demethylmenaquinol-8 Biosynthesis$",
+            "Demethylmenaquinol-8 Biosynth.", y, ignore.case = TRUE)
+  y <- gsub("^Fatty Acid Biosynthesis (I|II)$",
+            "Fatty Acid Biosynth. \\1", y, ignore.case = TRUE)
+  y <- gsub("^CMP-Legionaminate Biosynthesis$",
+            "CMP-Legionaminate Biosynth.", y, ignore.case = TRUE)
+  y <- gsub("^Glycogen Biosynthesis II$",
+            "Glycogen Biosynth. II", y, ignore.case = TRUE)
+  # Match the displayed long names regardless of pathway prefixes or case.
+  y[grepl("Geranylgeranyldiphosphate", y, ignore.case = TRUE)] <-
+    "GGPP Biosynth. I"
+  y[grepl("^Hexitol Fermentation", y, ignore.case = TRUE)] <-
+    "Hexitol Fermentation"
+  y[grepl("Hydroxypropanoate/4-Hydroxybutanate", y, ignore.case = TRUE)] <-
+    "3-HP/4-HB Cycle"
+  y[grepl("^D-Myo-Inositol.*Trisphosphate", y, ignore.case = TRUE)] <-
+    "Inositol Trisphosphate"
+  y[grepl("^Hentriaconta.*Nonaene", y, ignore.case = TRUE)] <-
+    "Hentriaconta-Nonaene"
+  y[grepl("^Demethylmenaquinol-8", y, ignore.case = TRUE)] <-
+    "Demethylmenaquinol-8"
+  y[grepl("^Nucleoside/Nucleotide", y, ignore.case = TRUE)] <-
+    "Nucleoside/Nucleotide"
+  y[grepl("^CMP-Legionaminate", y, ignore.case = TRUE)] <-
+    "CMP-Legionaminate"
+  y <- gsub(" Biosynthesis", " Biosynth.", y, fixed = TRUE)
+  y <- gsub(" Degradation", " Degrad.", y, fixed = TRUE)
+  y <- sub("^-", "", y)
+  # Compact Figure 4 labels; preserve pathway distinctions (such as I/II).
+  # Figure4_Pathway_Label_Key.tsv retains the full MetaCyc descriptions.
+  replacements <- c(
+    "^GGPP Biosynth\\. I$" = "GGPP biosyn. I",
+    "^Hexitol Fermentation$" = "Hexitol ferment.",
+    "^Glycogen Biosynth\\. II$" = "Glycogen biosyn. II",
+    "^CMP-Legionaminate.*$" = "CMP-legionaminate",
+    "^Nucleoside/Nucleotide.*$" = "Nucleoside/nucleotide",
+    "^Ethanolamine Utilization$" = "Ethanolamine use",
+    "^Acetylene Degrad\\.$" = "Acetylene degrad.",
+    "^Fatty Acid Biosynth\\. (I|II)$" = "Fatty acid biosyn. \\1",
+    "^Petroselinate Biosynth\\.$" = "Petroselinate biosyn.",
+    "^Mevalonate Pathway I$" = "Mevalonate I",
+    "^Polyamine Biosynth\\. II$" = "Polyamine biosyn. II",
+    "^Queuosine Biosynth\\.( I)?$" = "Queuosine biosyn. I",
+    "^Hentriaconta-Nonaene.*$" = "Hentriaconta-nonaene",
+    "^Cis-Alkene Biosynth\\.$" = "Cis-alkene biosyn.",
+    "^D-Cycloserine Biosynth\\.$" = "D-Cycloserine biosyn.",
+    "^Pyridoxal 5'-P Biosynth\\.$" = "Pyridoxal 5'-P",
+    "^Inositol Trisphosphate.*$" = "Inositol trisphos.",
+    "^Glyoxylate Assimilation$" = "Glyoxylate assim.",
+    "^1,3-Propanediol Biosynth\\.$" = "1,3-Propanediol",
+    "^Chitin Degrad\\. I$" = "Chitin degrad. I",
+    "^3-HP/4-HB Cycle$" = "3-HP/4-HB cycle",
+    "^Dodecenoate Biosynth\\. II$" = "Dodecenoate biosyn. II",
+    "^Nitrate Reduction I$" = "Nitrate reduction I",
+    "^5-DPMP Biosynth\\. II$" = "5-DPMP biosyn. II",
+    "^Demethylmenaquinol-8$" = "Demethylmenaquinol-8",
+    "^Stachyose Degrad\\.$" = "Stachyose degrad.",
+    "^Camphor Degrad\\.$" = "Camphor degrad."
+  )
+  for (pattern in names(replacements)) {
+    y <- gsub(pattern, replacements[[pattern]], y, ignore.case = TRUE)
+  }
+  # Bound unfamiliar future names at a word boundary rather than allowing
+  # a long y-axis label to consume the width of both dot grids.
+  long <- nchar(y) > 23L
+  y[long] <- paste0(sub("[[:space:][:punct:]]+$", "", substr(y[long], 1L, 20L)), "…")
+  y
 }
 
 clean_fig4_plot <- function(p) {
@@ -2805,66 +3363,97 @@ clean_fig4_plot <- function(p) {
     new <- short_pathway_labels_fig4(old)
     old_levels <- if (is.factor(p$data$Pathway)) levels(p$data$Pathway) else unique(old)
     new_levels <- short_pathway_labels_fig4(old_levels)
-    p$data$Pathway <- factor(new, levels = unique(new_levels))
+    if (anyDuplicated(new_levels)) {
+      stop("Figure 4 has duplicate short pathway names; revise the label map.")
+    }
+    p$data$Pathway <- factor(new, levels = new_levels)
   }
-  p + scale_y_discrete(labels = short_pathway_labels_fig4)
+  p +
+    scale_y_discrete(labels = identity) +
+    guides(shape = "none")
 }
+
+fig4_label_key <- dplyr::bind_rows(
+  tibble::tibble(Panel = "A: Rhizosphere",
+                 Full_pathway = unique(as.character(p_rhiz$data$Pathway))),
+  tibble::tibble(Panel = "B: Root",
+                 Full_pathway = unique(as.character(p_root$data$Pathway)))
+) %>%
+  dplyr::mutate(Figure_label = short_pathway_labels_fig4(Full_pathway))
+readr::write_tsv(
+  fig4_label_key,
+  file.path(NATCOM_DIR, "Figure4_Pathway_Label_Key.tsv")
+)
 
 # Replace titles
 p_rhiz <- clean_fig4_plot(p_rhiz) +
-  labs(title = "Top 15 rhizosphere pathways with Panch signal")
+  labs(title = trichoderma_title("Top 15 rhizosphere pathways with Trichoderma signal"))
 
 p_root <- clean_fig4_plot(p_root) +
-  labs(title = "Top 15 root pathways with Panch signal")
+  labs(title = trichoderma_title("Top 15 root pathways with Trichoderma signal"))
 
-p_rhiz_clean <- p_rhiz +
-  labs(title = "Rhizosphere") +
-  theme(
-    legend.position = "none",
-    axis.text.x = element_text(angle = 30, hjust = 1, size = 9),
-    plot.title = element_text(size = 10, face = "bold", hjust = 0),
-    plot.margin = margin(8, 8, 18, 8)
-  )
-
-p_root_clean <- p_root +
-  labs(title = "Root") +
-  theme(
-    legend.position = "right",
-    legend.box = "vertical",
-    legend.spacing.y = unit(0.25, "cm"),
-    legend.margin = margin(4, 4, 4, 4),
-    axis.text.x = element_text(angle = 30, hjust = 1, size = 9),
-    plot.title = element_text(size = 10, face = "bold", hjust = 0),
-    plot.margin = margin(8, 8, 18, 8)
-  )
 # ----------------------------
 # 3) Clean panels for merging
 # ----------------------------
 
 # Panel A: remove legend and increase readability
 p_rhiz_clean <- p_rhiz +
+  guides(shape = "none") +
   theme(
     legend.position = "none",
-    axis.text.y = element_text(size = 10, colour = "black"),
-    axis.text.x = element_text(angle = 30, hjust = 1, size = 11, face = "bold", colour = "black"),
-    axis.title = element_text(size = 12, face = "bold"),
-    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    axis.text.y = element_text(size = FIG4_PATHWAY_TEXT_SIZE, colour = "black"),
+    axis.text.x = element_text(
+      angle = 25,
+      hjust = 1,
+      vjust = 1,
+      size = FIG4_FIELD_TEXT_SIZE,
+      face = "bold",
+      colour = "black"
+    ),
+    axis.title = element_text(size = FIG4_SITE_TEXT_SIZE, face = "bold"),
+    plot.title = element_text(
+      size = FIG4_TITLE_SIZE,
+      face = "bold",
+      hjust = 0.5,
+      margin = margin(b = 4)
+    ),
+    plot.title.position = "plot",
     plot.margin = margin(6, 8, 14, 8)
   )
 
 # Panel B: keep one shared legend and increase readability
 p_root_clean <- p_root +
+  guides(
+    shape = "none",
+    colour = guide_legend(
+      title = "Direction",
+      order = 1,
+      override.aes = list(alpha = 1, size = 5, shape = c(16, 17))
+    ),
+    size = guide_legend(
+      title = "Effect size |effect|",
+      order = 2
+    )
+  ) +
   theme(
     legend.position = "right",
     legend.box = "vertical",
-    legend.spacing.y = unit(0.25, "cm"),
+    legend.spacing.y = grid::unit(0.35, "cm"),
     legend.margin = margin(4, 4, 4, 4),
-    legend.title = element_text(size = 11, face = "bold"),
-    legend.text = element_text(size = 10),
-    axis.text.y = element_text(size = 10, colour = "black"),
-    axis.text.x = element_text(angle = 30, hjust = 1, size = 11, face = "bold", colour = "black"),
-    axis.title = element_text(size = 12, face = "bold"),
-    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    legend.title = element_text(size = FIG4_LEGEND_TITLE_SIZE, face = "bold"),
+    legend.text = element_text(size = FIG4_LEGEND_TEXT_SIZE),
+    legend.key.height = grid::unit(7, "mm"),
+    axis.text.y = element_text(size = FIG4_PATHWAY_TEXT_SIZE, colour = "black"),
+    axis.text.x = element_text(
+      angle = 25,
+      hjust = 1,
+      vjust = 1,
+      size = FIG4_FIELD_TEXT_SIZE,
+      face = "bold",
+      colour = "black"
+    ),
+    axis.title = element_text(size = FIG4_SITE_TEXT_SIZE, face = "bold"),
+    plot.title = element_text(size = FIG4_TITLE_SIZE, face = "bold", hjust = 0.5),
     plot.margin = margin(6, 8, 14, 8)
   )
 
@@ -2872,13 +3461,27 @@ p_root_clean <- p_root +
 # 4) Combine panels
 # ----------------------------
 
+# Put the shared legend in its own column. Give the two legend-free plots
+# identical gtable widths so their six-environment dot grids have the same width,
+# even when their pathway labels have different lengths.
+fig4_legend <- cowplot::get_legend(p_root_clean)
+if (is.null(fig4_legend)) stop("Could not extract the Figure 4 legend.")
+fig4_rhiz_grob <- ggplot2::ggplotGrob(p_rhiz_clean)
+fig4_root_grob <- ggplot2::ggplotGrob(p_root_clean + theme(legend.position = "none"))
+if (length(fig4_rhiz_grob$widths) != length(fig4_root_grob$widths)) {
+  stop("Figure 4 panels have incompatible layouts; cannot equalise plot widths.")
+}
+fig4_shared_widths <- grid::unit.pmax(fig4_rhiz_grob$widths, fig4_root_grob$widths)
+fig4_rhiz_grob$widths <- fig4_shared_widths
+fig4_root_grob$widths <- fig4_shared_widths
+
+fig4_legend_width <- 0.62
 fig4_body <- cowplot::plot_grid(
-  p_rhiz_clean,
-  p_root_clean,
+  fig4_rhiz_grob,
+  fig4_root_grob,
+  fig4_legend,
   nrow = 1,
-  rel_widths = c(1, 1.3),
-  align = "h",
-  axis = "tb"
+  rel_widths = c(1, 1, fig4_legend_width)
 )
 
 fig4_function_consistency <- cowplot::ggdraw() +
@@ -2896,16 +3499,16 @@ fig4_function_consistency <- cowplot::ggdraw() +
     hjust = 0,
     vjust = 1,
     fontface = "bold",
-    size = 24
+    size = FIG4_TAG_SIZE
   ) +
   cowplot::draw_label(
     "B",
-    x = 0.515,
+    x = 1 / (2 + fig4_legend_width) + 0.005,
     y = 0.995,
     hjust = 0,
     vjust = 1,
     fontface = "bold",
-    size = 24
+    size = FIG4_TAG_SIZE
   )
 
 # ----------------------------
@@ -2914,27 +3517,30 @@ fig4_function_consistency <- cowplot::ggdraw() +
 ggsave(
   file.path(NATCOM_DIR, "Figure4_Functional_Pathway_Consistency_NatCom.pdf"),
   fig4_function_consistency,
-  width = 425,
-  height = 180,
+  width = 530,
+  height = 205,
   units = "mm",
-  useDingbats = FALSE
+  useDingbats = FALSE,
+  bg = "white"
 )
 
 ggsave(
   file.path(NATCOM_DIR, "Figure4_Functional_Pathway_Consistency_NatCom.png"),
   fig4_function_consistency,
-  width = 425,
-  height = 180,
+  width = 530,
+  height = 205,
   units = "mm",
-  dpi = 600
+  dpi = 600,
+  bg = "white"
 )
 
 ggsave(
   file.path(NATCOM_DIR, "Figure4_Functional_Pathway_Consistency_NatCom.svg"),
   fig4_function_consistency,
-  width = 425,
-  height = 180,
-  units = "mm"
+  width = 530,
+  height = 205,
+  units = "mm",
+  bg = "white"
 )
 message("Figure 4 saved to: ", NATCOM_DIR)
 
@@ -3109,13 +3715,13 @@ meta <- readr::read_tsv(meta_fp, show_col_types = FALSE) %>%
     ),
     Inoculation = case_when(
       str_to_lower(Inoculation) == "control" ~ "Control",
-      str_to_lower(Inoculation) == "panch" ~ "Panch",
+      str_to_lower(Inoculation) %in% c("panch", "trichoderma") ~ "Trichoderma",
       TRUE ~ Inoculation
     )
   ) %>%
   mutate(
     Location    = factor(Location),
-    Inoculation = factor(Inoculation, levels = c("Control", "Panch")),
+    Inoculation = factor(Inoculation, levels = c("Control", "Trichoderma")),
     Water       = factor(Water)
   )
 
@@ -4243,13 +4849,13 @@ meta <- readr::read_tsv(meta_fp, show_col_types = FALSE) %>%
     ),
     Inoculation = case_when(
       str_to_lower(Inoculation) == "control" ~ "Control",
-      str_to_lower(Inoculation) == "panch"   ~ "Panch",
+      str_to_lower(Inoculation) %in% c("panch", "trichoderma")   ~ "Trichoderma",
       TRUE ~ Inoculation
     )
   ) %>%
   mutate(
     Location    = factor(Location),
-    Inoculation = factor(Inoculation, levels = c("Control", "Panch"))
+    Inoculation = factor(Inoculation, levels = c("Control", "Trichoderma"))
   )
 
 stopifnot(all(c("SampleID","Location","Inoculation") %in% names(meta)))
@@ -5248,19 +5854,110 @@ italic_taxa <- function(x) {
 p_root <- readRDS(root_rds)
 p_rhiz <- readRDS(rhiz_rds)
 
+# Compact display labels for the merged Figure 5 only. The complete pathway
+# names remain unchanged in the data, RDS objects and exported tables.
+short_pathway_labels_fig5 <- function(x) {
+  y <- gsub("\n", " ", as.character(x))
+  y <- gsub("\\s+", " ", trimws(y))
+
+  vapply(y, function(z) {
+    if (grepl("Hexitol fermentation", z, ignore.case = TRUE)) {
+      return("Hexitol\nfermentation")
+    }
+    if (grepl("S-adenosyl|methionine salvage", z, ignore.case = TRUE)) {
+      return("SAM\nsalvage")
+    }
+    if (grepl("Lipid IVA.*P\\. putida", z, ignore.case = TRUE)) {
+      return("Lipid IVA\nbiosynthesis\n(P. putida)")
+    }
+    if (grepl("Lipid IVA.*E\\. coli", z, ignore.case = TRUE)) {
+      return("Lipid IVA\nbiosynthesis\n(E. coli)")
+    }
+    if (grepl("Cytosolic NADPH", z, ignore.case = TRUE)) {
+      return("Cytosolic\nNADPH\nproduction")
+    }
+    if (grepl("Queuosine", z, ignore.case = TRUE)) {
+      return("Queuosine\nbiosynthesis")
+    }
+    if (grepl("Fatty acid biosynthesis", z, ignore.case = TRUE)) {
+      suffix <- if (grepl("E\\. coli", z, ignore.case = TRUE)) "\n(E. coli)" else ""
+      return(paste0("Fatty acid\nbiosynthesis", suffix))
+    }
+    if (grepl("TCA cycle VII", z, ignore.case = TRUE)) {
+      return("TCA cycle VII")
+    }
+    if (grepl("D-galactose", z, ignore.case = TRUE)) {
+      return("D-galactose\ndegradation")
+    }
+    if (grepl("Stachyose", z, ignore.case = TRUE)) {
+      return("Stachyose\ndegradation")
+    }
+    if (grepl("Homocysteine|Cys.*Homocys", z, ignore.case = TRUE)) {
+      return("Cys–Homocys\ninterconversion")
+    }
+    if (grepl("ravidosamine", z, ignore.case = TRUE)) {
+      return("dTDP-\nravidosamine\nbiosynthesis")
+    }
+
+    stringr::str_wrap(z, width = 12)
+  }, character(1))
+}
+
 # Panel A: Rhizosphere, remove legend
 p_rhiz_clean <- p_rhiz +
+  scale_x_discrete(labels = short_pathway_labels_fig5) +
   theme(
     legend.position = "none",
-    plot.margin = margin(6, 8, 6, 6)
+    axis.text.x = element_text(
+      size = FIG5_PATHWAY_TEXT_SIZE,
+      angle = FIG5_PATHWAY_TEXT_ANGLE,
+      hjust = 1,
+      vjust = 1,
+      lineheight = 0.9,
+      colour = "black"
+    ),
+    axis.text.y = element_text(
+      size = FIG5_TAXON_TEXT_SIZE,
+      colour = "black"
+    ),
+    axis.title = element_text(size = FIG5_SOURCE_BASE_SIZE + 1, face = "bold"),
+    plot.title = element_text(
+      size = FIG5_TITLE_SIZE,
+      face = "bold",
+      hjust = 0
+    ),
+    plot.margin = margin(8, 10, 8, 8)
   )
 
 # Panel B: Root, keep legend on the right
 p_root_clean <- p_root +
+  scale_x_discrete(labels = short_pathway_labels_fig5) +
   theme(
     legend.position = "right",
     legend.box = "vertical",
-    plot.margin = margin(6, 6, 6, 6)
+    axis.text.x = element_text(
+      size = FIG5_PATHWAY_TEXT_SIZE,
+      angle = FIG5_PATHWAY_TEXT_ANGLE,
+      hjust = 1,
+      vjust = 1,
+      lineheight = 0.9,
+      colour = "black"
+    ),
+    axis.text.y = element_text(
+      size = FIG5_TAXON_TEXT_SIZE,
+      colour = "black"
+    ),
+    axis.title = element_text(size = FIG5_SOURCE_BASE_SIZE + 1, face = "bold"),
+    plot.title = element_text(
+      size = FIG5_TITLE_SIZE,
+      face = "bold",
+      hjust = 0
+    ),
+    legend.title = element_text(size = FIG5_LEGEND_TITLE_SIZE, face = "bold"),
+    legend.text = element_text(size = FIG5_LEGEND_TEXT_SIZE),
+    legend.key.height = grid::unit(5, "mm"),
+    legend.spacing.y = grid::unit(1.5, "mm"),
+    plot.margin = margin(8, 8, 8, 8)
   )
 
 fig5_stratified_contributors <- cowplot::plot_grid(
@@ -5268,13 +5965,13 @@ fig5_stratified_contributors <- cowplot::plot_grid(
   p_root_clean,
   nrow = 1,
   labels = c("A", "B"),
-  label_size = 16,
+  label_size = FIG5_TAG_SIZE,
   label_fontface = "bold",
   label_x = c(0.005, 0.005),
   label_y = c(0.995, 0.995),
   hjust = 0,
   vjust = 1,
-  rel_widths = c(1.18, 1.15),
+  rel_widths = c(1.15, 1.22),
   align = "h",
   axis = "tb"
 )
@@ -5282,8 +5979,8 @@ fig5_stratified_contributors <- cowplot::plot_grid(
 ggsave(
   file.path(NATCOM_DIR, "Figure5_Stratified_Pathway_Contributors_NatCom.pdf"),
   fig5_stratified_contributors,
-  width = 320,
-  height = 160,
+  width = FIG5_EXPORT_WIDTH_MM,
+  height = FIG5_EXPORT_HEIGHT_MM,
   units = "mm",
   useDingbats = FALSE
 )
@@ -5291,8 +5988,8 @@ ggsave(
 ggsave(
   file.path(NATCOM_DIR, "Figure5_Stratified_Pathway_Contributors_NatCom.png"),
   fig5_stratified_contributors,
-  width = 320,
-  height = 160,
+  width = FIG5_EXPORT_WIDTH_MM,
+  height = FIG5_EXPORT_HEIGHT_MM,
   units = "mm",
   dpi = 600
 )
@@ -5300,8 +5997,8 @@ ggsave(
 ggsave(
   file.path(NATCOM_DIR, "Figure5_Stratified_Pathway_Contributors_NatCom.svg"),
   fig5_stratified_contributors,
-  width = 320,
-  height = 160,
+  width = FIG5_EXPORT_WIDTH_MM,
+  height = FIG5_EXPORT_HEIGHT_MM,
   units = "mm"
 )
 
@@ -5404,6 +6101,25 @@ p_rhiz <- readRDS(rhiz_rds) +
   scale_x_discrete(
     labels = function(x) gsub("\n", " ", short_pathway_labels(x))
   ) +
+  scale_size_continuous(
+    name = "Contribution",
+    range = FIGS5_POINT_SIZE_RANGE,
+    labels = scales::percent_format(accuracy = 1)
+  ) +
+  scale_colour_gradientn(
+    colours = c(FIGS5_LOW_COLOUR, "#4292C6", "#FFFFBF", "#FDAE61", "#D7191C"),
+    limits = c(-4, 0),
+    oob = scales::squish,
+    name = "log10\nproportion"
+  ) +
+  geom_point(
+    aes(size = Prop),
+    shape = 21,
+    fill = NA,
+    colour = FIGS5_OUTLINE_COLOUR,
+    stroke = FIGS5_OUTLINE_STROKE,
+    show.legend = FALSE
+  ) +
   labs(title = "Rhizosphere") +
   theme(
     legend.position = "none",
@@ -5435,6 +6151,25 @@ p_rhiz <- readRDS(rhiz_rds) +
 p_root <- readRDS(root_rds) +
   scale_x_discrete(
     labels = function(x) gsub("\n", " ", short_pathway_labels(x))
+  ) +
+  scale_size_continuous(
+    name = "Contribution",
+    range = FIGS5_POINT_SIZE_RANGE,
+    labels = scales::percent_format(accuracy = 1)
+  ) +
+  scale_colour_gradientn(
+    colours = c(FIGS5_LOW_COLOUR, "#4292C6", "#FFFFBF", "#FDAE61", "#D7191C"),
+    limits = c(-4, 0),
+    oob = scales::squish,
+    name = "log10\nproportion"
+  ) +
+  geom_point(
+    aes(size = Prop),
+    shape = 21,
+    fill = NA,
+    colour = FIGS5_OUTLINE_COLOUR,
+    stroke = FIGS5_OUTLINE_STROKE,
+    show.legend = FALSE
   ) +
   labs(title = "Root") +
   theme(
