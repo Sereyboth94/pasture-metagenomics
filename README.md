@@ -196,8 +196,7 @@ SRA runs: see BioProject PRJNA1475531
 
 Permanent Zenodo archive:
 
-**DOI:** TO BE ADDED
-
+DOI: 10.5281/zenodo.23027333
 ---
 
 # Contact
